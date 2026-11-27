@@ -1,8 +1,8 @@
 # YouTube Creator Intelligence — Universal Self-Contained Prompt
 
 - **Canonical Skill:** `youtube-creator-skill`
-- **Version:** `1.0.0-rc.2`
-- **Canonical Source SHA-256:** `6b1278289b662bf6fc0c5648215dc8d85674cb34454d8c4962dc2400685a6cac`
+- **Version:** `1.0.0-rc.3`
+- **Canonical Source SHA-256:** `5ec0b7659b9b77596195721eaf07dfd8b5aed702196d2505687fc5d92e3b6b59`
 - **License:** MIT (Free $0; full notices included in Appendix B)
 - **Use Mode:** Paste this entire file at the start of any chat (ChatGPT, Claude Chat, Gemini, DeepSeek, Grok, Qwen, Copilot, etc.) and follow with your YouTube request. No file links, Python runtime, or API keys are required.
 
@@ -79,7 +79,7 @@ Even when reading `SKILL.md` alone in text-only mode, enforce these non-negotiab
 
 - **One Promise Across Surfaces:** Title, Thumbnail / First Frame, and First Spoken Line must express the *same* promise from *complementary* angles — never duplicate the exact same words on title and thumbnail text.
 - **TT-01 Title Curiosity Gate:** Concrete subject + surprising contrast/consequence + meaningful curiosity gap. Shorts preference: ~5–8 words (flexible heuristic); Long-form adapted to promise/language. Avoid hype adjectives ("insane", "mind-blowing"), ALL-CAPS spam (>2 words), emoji clutter, and false clickbait.
-- **Hook Standards:** Shorts open immediately on an observable action or stake. Keep the **first spoken line <= 9 spoken words** (max 10 brisk) so it genuinely fits **0–3s** at 150–180 WPM; never market an 11–20+ word line as `0–3s` (label multi-sentence setups honestly as `0–5s`/`0–6s`). Long-form confirms the title promise, proves payoff exists, and raises an open question in the first ~15–30s. Never start with "Hey guys, welcome back to my channel."
+- **Hook Standards:** Shorts (both direct-address and narrative/3rd-person) open immediately on an observable action or stake. Check spoken pace honestly: at conversational `150 WPM` (`2.5 words/s`), `0–3s` fits `<= 7` spoken words (`9` words = `3.6s`); at brisk `180 WPM` (`3.0 words/s`), `0–3s` fits `<= 9` spoken words (`9` words = `3.0s`). Never assume `9` words = `3.0s` at `150 WPM`, never market `10+` words as `0–3s` (label multi-sentence setups honestly as `0–5s`/`0–6s`), and never apply Shorts `0–3s` caps mechanically to Long-form (Long-form confirms the title promise, proves payoff exists, and raises an open question in the first ~15–30s). Never start with "Hey guys, welcome back to my channel."
 - **KH-01 Spoken Script Discipline:** Natural contractions, concrete nouns/verbs, varied sentence length, escalating beats, accurate everyday analogies (explicitly distinguished from literal mechanisms), earned payoff. Estimate duration only from actual spoken word count and stated WPM basis (default conversational 145–175 WPM; energetic narration 180–220 WPM; never attach WPM ranges to unscripted bullet outlines and never claim exact seconds without measured audio).
 - **Analytics Truth:** Never mix Shorts and Long-form cohorts. Never treat missing metrics as `0`. Never clamp valid retention or APV >100% (rewatches/loops are real). Report retention changes in **percentage points (pp)** alongside time intervals. Distinguish Shorts public views from **engaged views** and feed retention (**stayed to watch vs. swiped away**). Never blame "1K jail" or "shadowban" as fact, and never diagnose a channel solely from raw view counts.
 - **Honest Deliverables & Clean Creator Copy:** Output copy-ready text directly in plain creator language — keep internal QA/taxonomy enums (`KH-01 Mode X`, `BLOCKED_MISSING_EVIDENCE`, `FICTIONAL_OR_DEMO`, `capabilities.used`, raw script field names) inside `creator-pack.json` or a brief bottom `Notes & Limits` section, never inside `Recommended Action` or pasteable descriptions/scripts/prompts. Never leak internal reminders (e.g., `"verify live links before publishing"`) inside copy-ready upload blocks, and honor fictional datasets without telling the user to open their real Studio export. For full packs, follow the bundled `output-schema.json` specification (`schema_version: "1.0.0"`), keep `SCRIPT.txt` pure voice text, sanitize CSV text cells against formula injection (`=`, `+`, `-`, `@`), and end with one falsifiable next experiment whose decision rules cover all numeric ranges cleanly.
@@ -427,11 +427,16 @@ When `CODE` is available, run optional offline helper `title_linter.py` (if Pyth
 A hook earns the next 20 seconds by confirming the click/scroll promise and creating an open loop the viewer wants closed — never by announcing who you are or summarizing the ending.
 
 ## 1. Format Opening Standards
-- **YouTube Shorts — Strict 0–3s Spoken First-Line Gate:**
+- **YouTube Shorts — Strict 0–3s Spoken First-Line Gate (Direct & Narrative POV):**
  - Open directly on an observable action, paradox, visual contrast, or immediate stake.
  - Zero channel intro, zero *"Hey guys"*, zero *"In this video"*.
- - **Word-count honesty rule:** At conversational-to-brisk pace (`150–180 WPM`, or `2.5–3.0 words/s`), **0–3s holds at most 7–9 spoken words** (up to 10 words at brisk ~200 WPM; remember spoken numbers like `$2,000` count as 3 spoken words).
- - **Never market an 11–20+ word spoken line as `0–3s`.** Either tighten the first spoken line to `<= 9` spoken words so the tension lands inside 0–3s, OR label a longer multi-clause setup honestly as `0–5s` / `0–6s` setup while letting the `0.0s` visual carry the 0–1s scroll-stop.
+ - **Exact WPM timing honesty (never equate 9 words to 3.0s across all speeds):**
+ - Conversational `150 WPM` (`2.5 words/s`): `0–3s` holds **`<= 7` spoken words** (`7` words = `2.8s`; `9` words = **`3.6s`**).
+ - Brisk `180 WPM` (`3.0 words/s`): `0–3s` holds **`<= 9` spoken words** (`9` words = **`3.0s`**).
+ - Energetic `200 WPM` (`3.33 words/s`): `0–3s` holds **`<= 10` spoken words** (`10` words = **`3.0s`**).
+ - Remember spoken figures like `$2,000` count as 3 spoken words.
+ - Apply this Shorts timing gate **consistently to both `direct` and `narrative` Shorts** (pass `--format SHORT` to optional offline helper `hookscore.py` (if Python tools are available; otherwise apply the qualitative rubric below), or `--shorts-story` for narrative Shorts). **Never market a 10+ word line as `0–3s`** — either tighten to `<= 7` words (conversational) / `<= 9` words (explicitly brisk 180 WPM), OR label a longer multi-clause setup honestly as `0–5s` / `0–6s` setup while letting the `0.0s` visual carry the 0–1s scroll-stop.
+ - **Do NOT apply Shorts 0–3s caps mechanically to Long-form** (use `--format LONG` on optional offline helper `hookscore.py` (if Python tools are available; otherwise apply the qualitative rubric below) for Long-form openings).
  - Never attach `ESTIMATED_WPM` runtime ranges to unscripted bullet outlines — compute WPM timing only on actual drafted spoken words.
  - Pair the **first spoken sentence** with a **complementary first frame**: the visual shows the concrete anomaly while the voice states the tension (avoid narrating what is already obvious unless clarifying a mechanism).
 - **Long-Form (~15–30s, tailored to video length and genre):**

@@ -50,14 +50,18 @@ class TestRC2Regressions(unittest.TestCase):
             "What happens when someone pays twelve dollars nine dollars and nineteen dollars a month for subscriptions they no longer use?",
             pov="narrative",
             title="What 3 Unused Subscriptions Cost Yearly",
+            video_format="SHORT",
         )
-        self.assertFalse(long_hook["fits_3s_first_line"])
+        self.assertFalse(long_hook["fits_3s_at_180_wpm"])
+        self.assertFalse(long_hook["fits_3s_at_150_wpm"])
         self.assertLessEqual(long_hook["rubric_0_to_10"]["speakability_visual"], 1)
-        self.assertTrue(any("0-3s" in r for r in long_hook["reasons"]))
+        self.assertTrue(any("180 WPM" in r for r in long_hook["reasons"]))
 
         demo_pack = json.loads((REPO_ROOT / "examples" / "01-science-short-copper-magnet" / "creator-pack.json").read_text(encoding="utf-8"))
-        demo_res = hookscore.score_hook(demo_pack["hook"]["selected"], pov="narrative", title=demo_pack["title"]["selected"])
-        self.assertTrue(demo_res["fits_3s_first_line"], f"Demo 01 hook too long: {demo_res}")
+        demo_res = hookscore.score_hook(
+            demo_pack["hook"]["selected"], pov="narrative", title=demo_pack["title"]["selected"], video_format="SHORT"
+        )
+        self.assertTrue(demo_res["fits_3s_at_180_wpm"], f"Demo 01 hook exceeds 3s at 180 WPM: {demo_res}")
         self.assertLessEqual(demo_res["word_count"], 9)
         self.assertLessEqual(demo_pack["storyboard"][0]["end_s"], 3.5)
 
@@ -72,8 +76,8 @@ class TestRC2Regressions(unittest.TestCase):
         self.assertEqual(out["overview"]["dropped_invalid_rows"], 1)
         self.assertEqual(out["axis"]["dropped_invalid_rows"], 1)
         self.assertTrue(any("Skipped 1" in w and "NaN" in w for w in out["warnings"]))
-        # Also verify retention.py stays within 20 KiB logic ceiling
-        self.assertLessEqual((SCRIPTS_DIR / "retention.py").stat().st_size, 20 * 1024)
+        # Verify retention.py stays within documented 24 KiB internal logic ceiling (adjusted in RC.3 without cutting validation)
+        self.assertLessEqual((SCRIPTS_DIR / "retention.py").stat().st_size, 24 * 1024)
 
     def test_iss06_malformed_json_rejected_exit_code_2(self) -> None:
         with tempfile.TemporaryDirectory() as td:
@@ -88,7 +92,7 @@ class TestRC2Regressions(unittest.TestCase):
         content, meta = build_universal_prompt.build_universal_prompt(REPO_ROOT)
         self.assertEqual(meta["unresolved_links"], 0)
         self.assertGreaterEqual(len(build_universal_prompt.ALLOWLISTED_SECTIONS), 21)
-        self.assertIn("1.0.0-rc.2", content)
+        self.assertIn("1.0.0-rc.3", content)
 
     def test_iss08_validators_exit_1_when_invalid(self) -> None:
         p_ch = subprocess.run(

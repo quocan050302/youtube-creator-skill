@@ -101,7 +101,7 @@ class TestReproducibleReleaseAndOfflineInstall(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix="yt_rel_test_") as td:
             out_dir = Path(td) / "dist"
             proc = subprocess.run(
-                [sys.executable, str(TOOLS_DIR / "build_release.py"), "--version", "1.0.0-rc.2", "--out-dir", str(out_dir), "--verify"],
+                [sys.executable, str(TOOLS_DIR / "build_release.py"), "--version", "1.0.0-rc.3", "--out-dir", str(out_dir), "--verify"],
                 cwd=str(REPO_ROOT),
                 capture_output=True,
                 text=True,
@@ -112,8 +112,8 @@ class TestReproducibleReleaseAndOfflineInstall(unittest.TestCase):
             self.assertTrue(manifest["reproducible_verified"])
             self.assertTrue(manifest["agensi_extraction_verified"]["verified"])
 
-            uni_zip = out_dir / "youtube-creator-skill-universal-v1.0.0-rc.2.zip"
-            agensi_zip = out_dir / "youtube-creator-skill-agensi-v1.0.0-rc.2.zip"
+            uni_zip = out_dir / "youtube-creator-skill-universal-v1.0.0-rc.3.zip"
+            agensi_zip = out_dir / "youtube-creator-skill-agensi-v1.0.0-rc.3.zip"
             self.assertTrue(uni_zip.is_file())
             self.assertTrue(agensi_zip.is_file())
 

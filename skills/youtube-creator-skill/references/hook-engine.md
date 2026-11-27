@@ -3,11 +3,16 @@
 A hook earns the next 20 seconds by confirming the click/scroll promise and creating an open loop the viewer wants closed — never by announcing who you are or summarizing the ending.
 
 ## 1. Format Opening Standards
-- **YouTube Shorts — Strict 0–3s Spoken First-Line Gate:**
+- **YouTube Shorts — Strict 0–3s Spoken First-Line Gate (Direct & Narrative POV):**
   - Open directly on an observable action, paradox, visual contrast, or immediate stake.
   - Zero channel intro, zero *"Hey guys"*, zero *"In this video"*.
-  - **Word-count honesty rule:** At conversational-to-brisk pace (`150–180 WPM`, or `2.5–3.0 words/s`), **0–3s holds at most 7–9 spoken words** (up to 10 words at brisk ~200 WPM; remember spoken numbers like `$2,000` count as 3 spoken words).
-  - **Never market an 11–20+ word spoken line as `0–3s`.** Either tighten the first spoken line to `<= 9` spoken words so the tension lands inside 0–3s, OR label a longer multi-clause setup honestly as `0–5s` / `0–6s` setup while letting the `0.0s` visual carry the 0–1s scroll-stop.
+  - **Exact WPM timing honesty (never equate 9 words to 3.0s across all speeds):**
+    - Conversational `150 WPM` (`2.5 words/s`): `0–3s` holds **`<= 7` spoken words** (`7` words = `2.8s`; `9` words = **`3.6s`**).
+    - Brisk `180 WPM` (`3.0 words/s`): `0–3s` holds **`<= 9` spoken words** (`9` words = **`3.0s`**).
+    - Energetic `200 WPM` (`3.33 words/s`): `0–3s` holds **`<= 10` spoken words** (`10` words = **`3.0s`**).
+    - Remember spoken figures like `$2,000` count as 3 spoken words.
+  - Apply this Shorts timing gate **consistently to both `direct` and `narrative` Shorts** (pass `--format SHORT` to `scripts/hookscore.py`, or `--shorts-story` for narrative Shorts). **Never market a 10+ word line as `0–3s`** — either tighten to `<= 7` words (conversational) / `<= 9` words (explicitly brisk 180 WPM), OR label a longer multi-clause setup honestly as `0–5s` / `0–6s` setup while letting the `0.0s` visual carry the 0–1s scroll-stop.
+  - **Do NOT apply Shorts 0–3s caps mechanically to Long-form** (use `--format LONG` on `scripts/hookscore.py` for Long-form openings).
   - Never attach `ESTIMATED_WPM` runtime ranges to unscripted bullet outlines — compute WPM timing only on actual drafted spoken words.
   - Pair the **first spoken sentence** with a **complementary first frame**: the visual shows the concrete anomaly while the voice states the tension (avoid narrating what is already obvious unless clarifying a mechanism).
 - **Long-Form (~15–30s, tailored to video length and genre):**

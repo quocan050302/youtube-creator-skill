@@ -6,6 +6,16 @@ will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0-rc.3] - 2026-11-27
+
+**Status:** Release Candidate Hotfix (`YT-01.R1.A6.HOTFIX` — Final Data Integrity; external multi-client certification and owner publication approval remain pending).
+
+### Fixed
+- **FIX-01 — `scripts/retention.py` CSV Column Integrity (`parse_curve`):** Replaced generic numeric-cell scanning with strict header-based column resolution (supporting reordered columns, rejecting ambiguous headers, and enforcing exact 2-column positional parsing for headerless CSVs). When either resolved x/time or y/retention cell is missing, `NaN`, or `Infinity`, the entire row is skipped (`rows_skipped` incremented) instead of shifting into adjacent columns such as `views`.
+- **FIX-02 — `scripts/retention.py` Axis Detection (`normalize_time`):** Restricted `auto` percent-axis detection strictly to the resolved x/time column header (`x_header`) and x-cell `%` markers so `percent` inside the y-column header (e.g., `time_s,retention_percent`) never misclassifies a seconds axis as normalized percentage.
+- **FIX-03 — `scripts/retention.py` Transcript JSON Parser (`_load_transcript_text`):** Checked `isinstance(data, list)` before calling `.get()`, cleanly supporting top-level JSON cue arrays, `{"segments": [...]}` objects, and `{"words": [...]}` objects while raising clear `ValueError` diagnostics on malformed structures instead of `AttributeError`.
+- **FIX-04 — Hook Timing Precision & Format Consistency (`scripts/hookscore.py`, `SKILL.md`, `references/hook-engine.md`):** Separated `fits_3s_at_150_wpm` (`<= 7` words = `2.8s`; `9` words = `3.6s`), `fits_3s_at_180_wpm` (`<= 9` words = `3.0s`), and `fits_3s_at_200_wpm` (`<= 10` words); added `--format {SHORT,LONG}` so Shorts `0–3s` timing gates apply consistently to both `direct` and `narrative` Shorts without being applied mechanically to Long-form openings.
+
 ## [1.0.0-rc.2] - 2026-11-27
 
 **Status:** Release Candidate (remediation pass from YT-01.T1 independent acceptance test; external multi-client certification and owner publication approval remain pending).

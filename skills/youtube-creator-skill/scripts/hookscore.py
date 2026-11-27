@@ -105,7 +105,12 @@ def classify_formula(text: str) -> tuple[str | None, str, int]:
     return best["id"], best["name"], best_hits
 
 
-def score_hook(hook_text: str, pov: str = "direct", title: str | None = None) -> dict[str, Any]:
+def score_hook(
+    hook_text: str,
+    pov: str = "direct",
+    title: str | None = None,
+    video_format: str = "LONG",
+) -> dict[str, Any]:
     t = normalize_hook(hook_text)
     tokens = _tokenize(t)
     word_count = len(tokens)
@@ -187,16 +192,23 @@ def score_hook(hook_text: str, pov: str = "direct", title: str | None = None) ->
 
     est_sec_150 = round(word_count / 2.5, 2)
     est_sec_180 = round(word_count / 3.0, 2)
-    fits_3s_first_line = word_count <= 9
-    fits_3s_brisk = word_count <= 10
+    fits_3s_150 = word_count <= 7
+    fits_3s_180 = word_count <= 9
+    fits_3s_200 = word_count <= 10
 
     r_speak = 2 if (brevity_100 >= 80 and not intro_hit and len(filler_hits) <= 1) else (1 if brevity_100 >= 50 else 0)
-    if pov == "narrative" and word_count > 10:
-        r_speak = min(r_speak, 1)
-        reasons.append(
-            f"Opening is {word_count} words (~{est_sec_180:.1f}-{est_sec_150:.1f}s at 150-180 WPM); "
-            "exceeds 0-3s Shorts first-line target (<=9-10 words). Tighten or label as 0-5s+ setup."
-        )
+    if video_format == "SHORT":
+        if word_count > 9:
+            r_speak = min(r_speak, 1)
+            reasons.append(
+                f"Shorts opening is {word_count} words (~{est_sec_180:.1f}s at brisk 180 WPM; ~{est_sec_150:.1f}s at 150 WPM); "
+                "exceeds 3.0s even at 180 WPM (<=7 words at 150 WPM, <=9 words at 180 WPM). Tighten or label as 0-5s+ setup."
+            )
+        elif word_count > 7:
+            reasons.append(
+                f"Shorts opening is {word_count} words (~{est_sec_180:.1f}s at brisk 180 WPM, ~{est_sec_150:.1f}s at conversational 150 WPM); "
+                "fits 0-3s at brisk pace only (not at 150 WPM)."
+            )
     if filler_hits:
         reasons.append(f"Filler words present: {', '.join(filler_hits)}")
 
@@ -213,11 +225,13 @@ def score_hook(hook_text: str, pov: str = "direct", title: str | None = None) ->
 
     return {
         "hook": t,
+        "format": video_format,
         "word_count": word_count,
         "est_spoken_sec_150_wpm": est_sec_150,
         "est_spoken_sec_180_wpm": est_sec_180,
-        "fits_3s_first_line": fits_3s_first_line,
-        "fits_3s_brisk": fits_3s_brisk,
+        "fits_3s_at_150_wpm": fits_3s_150,
+        "fits_3s_at_180_wpm": fits_3s_180,
+        "fits_3s_at_200_wpm": fits_3s_200,
         "pov_mode": pov,
         "formula_id": formula_id,
         "formula_name": formula_name,
@@ -233,7 +247,12 @@ def score_hook(hook_text: str, pov: str = "direct", title: str | None = None) ->
     }
 
 
-def rank_hooks(hooks: list[str], pov: str = "direct", title: str | None = None) -> dict[str, Any]:
+def rank_hooks(
+    hooks: list[str],
+    pov: str = "direct",
+    title: str | None = None,
+    video_format: str = "LONG",
+) -> dict[str, Any]:
     results: list[dict[str, Any]] = []
     seen: dict[str, int] = {}
     duplicates: list[str] = []
@@ -246,7 +265,7 @@ def rank_hooks(hooks: list[str], pov: str = "direct", title: str | None = None) 
             duplicates.append(norm)
             continue
         seen[key] = idx
-        item = score_hook(norm, pov=pov, title=title)
+        item = score_hook(norm, pov=pov, title=title, video_format=video_format)
         item["input_index"] = idx
         results.append(item)
 
@@ -262,6 +281,7 @@ def rank_hooks(hooks: list[str], pov: str = "direct", title: str | None = None) 
         "rubric_id": RUBRIC_ID,
         "formulas_count": len(EMBEDDED_FORMULAS),
         "formulas_sha256": formulas_fingerprint(),
+        "format": video_format,
         "pov_mode": pov,
         "title_reference": normalize_hook(title) if title else None,
         "count_evaluated": len(results),
@@ -315,7 +335,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--hook", action="append", default=[], help="Hook text to score (repeatable).")
     parser.add_argument("--title", default=None, help="Optional video title to check lexical promise overlap.")
     parser.add_argument("--pov", choices=["direct", "narrative"], default="direct", help="POV scoring mode.")
-    parser.add_argument("--shorts-story", action="store_true", help="Alias for --pov narrative (3rd-person Shorts).")
+    parser.add_argument("--format", choices=["SHORT", "LONG"], default=None, help="Video format (applies Shorts 0-3s timing gate only to SHORT).")
+    parser.add_argument("--shorts-story", action="store_true", help="Alias for --pov narrative --format SHORT (3rd-person Shorts).")
     parser.add_argument("--json", action="store_true", help="Output JSON (default behavior).")
     parser.add_argument("--max-bytes", type=int, default=MAX_INPUT_BYTES, help="Max input size in bytes.")
     args = parser.parse_args(argv)
@@ -325,6 +346,7 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     pov = "narrative" if args.shorts_story else args.pov
+    video_format = args.format if args.format is not None else ("SHORT" if args.shorts_story else "LONG")
     hooks: list[str] = list(args.hook)
     try:
         if args.input:
@@ -335,7 +357,7 @@ def main(argv: list[str] | None = None) -> int:
         if not hooks:
             print("Error: Provide --hook, a file path, or stdin input.", file=sys.stderr)
             return 2
-        payload = rank_hooks(hooks, pov=pov, title=args.title)
+        payload = rank_hooks(hooks, pov=pov, title=args.title, video_format=video_format)
     except (ValueError, FileNotFoundError, OSError) as exc:
         print(f"Invalid input: {exc}", file=sys.stderr)
         return 2

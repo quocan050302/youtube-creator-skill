@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Price: Free $0](https://img.shields.io/badge/Price-Free%20%240-blue.svg)](LICENSE)
-[![Status: v1.0.0-rc.2](https://img.shields.io/badge/Release-v1.0.0--rc.2-orange.svg)](CHANGELOG.md)
+[![Status: v1.0.0-rc.3](https://img.shields.io/badge/Release-v1.0.0--rc.3-orange.svg)](CHANGELOG.md)
 [![CI](https://github.com/quocan050302/youtube-creator-skill/actions/workflows/ci.yml/badge.svg)](https://github.com/quocan050302/youtube-creator-skill/actions/workflows/ci.yml)
 
 **Turn a topic, script draft, competitor dataset, or YouTube Studio export into one evidence-backed creative decision and a ready-to-produce Creator Action Pack — then read real post-upload analytics to improve your next video.**
@@ -63,7 +63,7 @@ A clean single-skill Agensi package is built from the exact same canonical sourc
 **What `youtube-creator-skill` Changes & Why (Verified Live Native Run — `EV-01`):**
 - **TT-01 Title:** `Why a Copper Pipe Slows Falling Magnets` *(7 words, 39 chars, concrete visual paradox, accurate physics without overclaiming a full stop; `title_linter.py` score `100/100`)*
 - **Thumbnail / First-Frame Text (Non-Redundant):** `INVISIBLE BRAKE` *(2 words, zero repeated words from title — `COMPLEMENTARY_LEXICAL`)*
-- **0–3s First Spoken Line:** `Copper isn't magnetic—why does it slow falling magnets?` *(9 spoken words, ~3.0s at 180 WPM, `hookscore.py --pov narrative` `fits_3s_first_line: true`, zero channel intro, no self-answering "because")*
+- **0–3s Brisk First Spoken Line:** `Copper isn't magnetic—why does it slow falling magnets?` *(9 spoken words: ~3.0s at brisk 180 WPM, ~3.6s at conversational 150 WPM; `hookscore.py --shorts-story` `fits_3s_at_180_wpm: true`, zero channel intro, no self-answering "because")*
 - **Clean `SCRIPT.txt` + `STORYBOARD.csv` + `NEXT_EXPERIMENT.md`:** Ready to record (107 spoken words, `ESTIMATED_WPM`), with verified physics mechanism (Lenz's law / eddy currents) cleanly separated from the everyday water-paddle analogy and zero CTA.
 
 See all three complete, schema-validated original demo packs in [`examples/`](examples/):

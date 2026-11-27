@@ -12,7 +12,7 @@
 - **Display Title:** `YouTube Creator Intelligence — Free AI Skill`
 - **Canonical Skill Name (`SKILL.md`):** `youtube-creator-skill`
 - **Pricing:** `FREE ($0)` *(per Agensi Creator FAQ, no payout method is required for free listings; open-source MIT skills are explicitly permitted when preserving license notices).*
-- **Version:** `1.0.0-rc.2` *(bump to `1.0.0` once owner clears stable release gates)*
+- **Version:** `1.0.0-rc.3` *(bump to `1.0.0` once owner clears stable release gates)*
 - **Suggested Category:** `Create -> Writing & Content` (or `Grow -> Social Media` depending on current Agensi UI dropdown)
 - **Suggested Tags / Keywords:** `youtube`, `youtube-shorts`, `scriptwriting`, `retention-analysis`, `channel-audit`, `thumbnails`, `content-strategy`, `youtube-seo`, `open-source`
 - **Short Summary (1–2 sentences):**
@@ -55,7 +55,7 @@ Licensed under MIT (`Copyright (c) 2026 quocan050302`). Adapts 21 hook formulas 
 - **After (`youtube-creator-skill` — verified live run `EV-01`):**
   - Title: `"Why a Copper Pipe Slows Falling Magnets"` (`title_linter.py`: `100/100`)
   - Thumbnail / First-Frame Text: `"INVISIBLE BRAKE"` (zero word duplication)
-  - 0–3s First Spoken Line: `"Copper isn't magnetic—why does it slow falling magnets?"` (9 spoken words, ~3.0s at 180 WPM; `hookscore.py --pov narrative`: `fits_3s_first_line: true`)
+  - 0–3s Brisk First Spoken Line: `"Copper isn't magnetic—why does it slow falling magnets?"` (9 spoken words: ~3.0s at brisk 180 WPM, ~3.6s at conversational 150 WPM; `hookscore.py --shorts-story`: `fits_3s_at_180_wpm: true`)
   - Clean `SCRIPT.txt` + 5-beat `STORYBOARD.csv` + `NEXT_EXPERIMENT.md` (zero CTA).
 
 ---

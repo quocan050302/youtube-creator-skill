@@ -70,14 +70,28 @@ def _load_transcript_text(raw: str, hint: str = "") -> list[tuple[float, float, 
         return []
     if stripped.startswith("{") or stripped.startswith("[") or hint.lower().endswith(".json"):
         data = json.loads(stripped)
-        segs = data.get("segments", data.get("words", data if isinstance(data, list) else []))
+        if isinstance(data, list):
+            segs = data
+        elif isinstance(data, dict):
+            if "segments" in data:
+                segs = data["segments"]
+            elif "words" in data:
+                segs = data["words"]
+            else:
+                raise ValueError("Transcript JSON object must contain a 'segments' or 'words' list.")
+            if not isinstance(segs, list):
+                raise ValueError("Transcript JSON 'segments'/'words' field must be a list.")
+        else:
+            raise ValueError("Transcript JSON must be a list of cues or an object with 'segments'/'words'.")
         out: list[tuple[float, float, str]] = []
-        for s in segs:
+        for idx, s in enumerate(segs):
             if not isinstance(s, dict):
-                continue
+                raise ValueError(f"Transcript JSON item at index {idx} must be an object, got {type(s).__name__}.")
             st, en = _parse_num(s.get("start"))[0], _parse_num(s.get("end"))[0]
             txt = str(s.get("text") or s.get("word") or "").strip()
-            if st is not None and en is not None and en >= st and txt:
+            if st is None or en is None or en < st:
+                raise ValueError(f"Transcript JSON item at index {idx} has invalid or missing 'start'/'end' timing.")
+            if txt:
                 out.append((st, en, txt))
         return out
 
@@ -109,11 +123,51 @@ def _load_transcript_text(raw: str, hint: str = "") -> list[tuple[float, float, 
     return [(a, b, " ".join(t)) for a, b, t in cues if t]
 
 
+_Y_TOKENS = {"retention", "audience", "watched", "remaining"}
+_Y_EXACT = {"y", "rate", "retention_pct", "retention_percent", "audience_retention", "still_watching", "watched_pct", "pct_watching"}
+_X_TOKENS = {"time", "sec", "secs", "second", "seconds", "pos", "position", "timestamp", "elapsed", "progress"}
+_X_EXACT = {"x", "t", "s", "pct", "percent", "%", "time_s", "video_pct", "video_percent", "percent_of_video", "pct_of_video", "position_pct", "position_percent", "elapsed_s"}
+_MISSING_SENTINELS = {"", "nan", "inf", "+inf", "-inf", "infinity", "+infinity", "-infinity", "null", "none", "na", "n/a", "-"}
+
+
+def _is_y_header(header: str) -> bool:
+    norm = re.sub(r"[^a-z0-9%]+", "_", header.strip().lower()).strip("_")
+    toks = set(re.findall(r"[a-z0-9]+|%", header.strip().lower()))
+    return norm in _Y_EXACT or bool(toks & _Y_TOKENS)
+
+
+def _is_x_header(header: str) -> bool:
+    if _is_y_header(header):
+        return False
+    norm = re.sub(r"[^a-z0-9%]+", "_", header.strip().lower()).strip("_")
+    toks = set(re.findall(r"[a-z0-9]+|%", header.strip().lower()))
+    return norm in _X_EXACT or bool(toks & _X_TOKENS)
+
+
+def _resolve_csv_columns(headers: list[str]) -> tuple[int, int]:
+    x_matches = [i for i, h in enumerate(headers) if _is_x_header(h)]
+    y_matches = [i for i, h in enumerate(headers) if _is_y_header(h)]
+    if len(x_matches) == 1 and len(y_matches) == 1 and x_matches[0] != y_matches[0]:
+        return x_matches[0], y_matches[0]
+    raise ValueError(
+        f"Ambiguous CSV headers {headers!r}: could not uniquely identify one time/position (x) column "
+        "and one retention (y) column."
+    )
+
+
+def _looks_like_data_cell(cell: str) -> bool:
+    s = cell.strip()
+    return _parse_num(s)[0] is not None or s.lower() in _MISSING_SENTINELS
+
+
 def parse_curve(raw_text: str) -> tuple[list[tuple[float, float]], dict[str, Any]]:
     if not raw_text.strip():
         raise ValueError("Retention input is empty.")
     stripped = raw_text.strip()
-    meta: dict[str, Any] = {"headers": [], "pct_sign_seen_x": False, "pct_sign_seen_y": False, "rows_skipped": 0}
+    meta: dict[str, Any] = {
+        "headers": [], "x_header": None, "y_header": None,
+        "pct_sign_seen_x": False, "pct_sign_seen_y": False, "rows_skipped": 0,
+    }
     pts: list[tuple[float, float]] = []
     if stripped[0] in "[{":
         data = json.loads(stripped)
@@ -138,20 +192,45 @@ def parse_curve(raw_text: str) -> tuple[list[tuple[float, float]], dict[str, Any
         return pts, meta
 
     delim = ";" if (stripped[:4096].count(";") > stripped[:4096].count(",")) else ","
-    for idx, row in enumerate(csv.reader(io.StringIO(raw_text), delimiter=delim)):
-        if not row or all(not c.strip() for c in row):
-            continue
-        nums = [(v, hp) for v, hp in (_parse_num(c) for c in row) if v is not None]
-        if idx == 0 and len(nums) < 2:
-            meta["headers"] = [c.strip() for c in row]
-            continue
-        if len(nums) >= 2:
-            (x, xp), (y, yp) = nums[0], nums[1]
-            meta["pct_sign_seen_x"] |= xp
-            meta["pct_sign_seen_y"] |= yp
-            pts.append((x, y))
-        else:
+    raw_rows = [r for r in csv.reader(io.StringIO(raw_text), delimiter=delim) if r and any(c.strip() for c in r)]
+    if not raw_rows:
+        raise ValueError("Retention input is empty.")
+
+    first = raw_rows[0]
+    first_is_headerless_data = (
+        len(first) >= 2
+        and all(_looks_like_data_cell(c) for c in first)
+        and any(_parse_num(c)[0] is not None for c in first)
+    )
+    if first_is_headerless_data:
+        if len(first) != 2:
+            raise ValueError(
+                f"Headerless CSV has {len(first)} columns; provide headers identifying time and retention columns "
+                "(or exactly 2 columns [time, retention])."
+            )
+        x_idx, y_idx = 0, 1
+        data_rows = raw_rows
+    else:
+        headers = [c.strip() for c in first]
+        meta["headers"] = headers
+        x_idx, y_idx = _resolve_csv_columns(headers)
+        meta["x_header"] = headers[x_idx]
+        meta["y_header"] = headers[y_idx]
+        data_rows = raw_rows[1:]
+
+    req_len = max(x_idx, y_idx) + 1
+    for row in data_rows:
+        if len(row) < req_len:
             meta["rows_skipped"] += 1
+            continue
+        x, xp = _parse_num(row[x_idx])
+        y, yp = _parse_num(row[y_idx])
+        if x is None or y is None:
+            meta["rows_skipped"] += 1
+            continue
+        meta["pct_sign_seen_x"] |= xp
+        meta["pct_sign_seen_y"] |= yp
+        pts.append((x, y))
     return pts, meta
 
 
@@ -190,11 +269,11 @@ def normalize_time(
     if dup_count:
         warnings.append(f"Resolved {dup_count} duplicate x-axis point(s) by keeping the last entry.")
 
-    header_str = " ".join(meta.get("headers", [])).lower()
+    x_hdr = str(meta.get("x_header") or "").lower()
     if time_unit == "auto":
-        if meta.get("pct_sign_seen_x") or "percent" in header_str or "%" in header_str:
+        if meta.get("pct_sign_seen_x") or "percent" in x_hdr or "pct" in x_hdr or "%" in x_hdr:
             resolved_unit = "percent"
-        elif "sec" in header_str or "time" in header_str:
+        elif "sec" in x_hdr or "time" in x_hdr or "elapsed" in x_hdr:
             resolved_unit = "seconds"
         elif max(p[0] for p in deduped) <= 100.5 and duration_s is not None and abs(max(p[0] for p in deduped) - 100.0) <= 2.0 and duration_s != 100.0:
             resolved_unit = "percent"

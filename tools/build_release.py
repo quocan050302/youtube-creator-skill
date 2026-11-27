@@ -341,7 +341,7 @@ def build_release(repo_root: Path, version: str, out_dir: Path, verify_repro: bo
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Build deterministic Agensi and Universal release packages.")
-    parser.add_argument("--version", default="1.0.0-rc.2")
+    parser.add_argument("--version", default="1.0.0-rc.3")
     parser.add_argument("--repo-root", default=str(REPO_ROOT))
     parser.add_argument("--out-dir", default=str(REPO_ROOT / "dist"))
     parser.add_argument("--verify", action="store_true", help="Verify byte-for-byte reproducibility via second build.")

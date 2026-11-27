@@ -65,7 +65,7 @@
     "alternatives": [
       "Drop a magnet through copper—gravity slows down."
     ],
-    "heuristic_basis": "scripts/hookscore.py --pov narrative -> 9 spoken words, fits_3s_first_line=true, formula The Question (lexical heuristic only)"
+    "heuristic_basis": "scripts/hookscore.py --shorts-story -> 9 spoken words, fits_3s_at_180_wpm=true (3.0s at 180 WPM; 3.6s at 150 WPM), formula The Question (lexical heuristic only)"
   },
   "first_frame": {
     "concept": "9:16 vertical macro tabletop shot showing silver neodymium magnet mid-descent at the top of an upright bare copper pipe over dark matte desk with steel bolt below.",
