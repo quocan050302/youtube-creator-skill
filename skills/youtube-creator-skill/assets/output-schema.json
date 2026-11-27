@@ -1,0 +1,216 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/quocan050302/youtube-creator-skill/schemas/creator-pack-v1.0.0.json",
+  "title": "YouTube Creator Action Pack Contract",
+  "description": "Structured contract v1.0.0 for youtube-creator-skill outputs. Unknown numeric/text values must be null, never coerced to 0.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "pack_id",
+    "created_at_utc",
+    "mode",
+    "format",
+    "language",
+    "audience_market",
+    "inputs",
+    "capabilities",
+    "assumptions",
+    "limitations",
+    "evidence",
+    "recommendation",
+    "quality",
+    "files"
+  ],
+  "properties": {
+    "schema_version": { "type": "string", "const": "1.0.0" },
+    "pack_id": { "type": "string", "minLength": 3, "maxLength": 128 },
+    "created_at_utc": { "type": "string", "minLength": 10 },
+    "mode": {
+      "type": "string",
+      "enum": [
+        "GENERATE", "AUDIT_SCRIPT", "CHANNEL_AUDIT", "COMPETITOR_RESEARCH",
+        "NICHE_DISCOVERY", "TOPIC_RESEARCH", "TITLE_PACKAGE", "HOOK_LAB",
+        "THUMBNAIL_LAB", "EDIT_REVIEW", "ANALYTICS_DIAGNOSIS", "CONTENT_PLAN",
+        "REPURPOSE", "SEO", "COMMENTS", "CHAPTERS", "IMPROVE"
+      ]
+    },
+    "format": { "type": "string", "enum": ["SHORT", "LONG", "MIXED"] },
+    "language": { "type": "string", "minLength": 2, "maxLength": 32 },
+    "audience_market": { "type": "string", "minLength": 2, "maxLength": 64 },
+    "inputs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "type", "source", "scope", "observed_at"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "type": { "type": "string" },
+          "source": { "type": "string" },
+          "scope": { "type": "string" },
+          "observed_at": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "capabilities": {
+      "type": "object",
+      "required": ["used", "unavailable"],
+      "properties": {
+        "used": { "type": "array", "items": { "type": "string" } },
+        "unavailable": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "assumptions": { "type": "array", "items": { "type": "string" } },
+    "limitations": { "type": "array", "items": { "type": "string" } },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "url_or_user_input", "claim", "source_date", "retrieved_at", "status"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "url_or_user_input": { "type": "string", "minLength": 1 },
+          "claim": { "type": "string", "minLength": 1 },
+          "source_date": { "type": ["string", "null"] },
+          "retrieved_at": { "type": ["string", "null"] },
+          "status": {
+            "type": "string",
+            "enum": ["VERIFIED_FACT", "SUPPLIED_FACT", "INFERENCE", "FICTIONAL_OR_DEMO", "UNVERIFIED"]
+          }
+        }
+      }
+    },
+    "recommendation": {
+      "type": "object",
+      "required": ["action", "rationale", "evidence_ids", "confidence"],
+      "properties": {
+        "action": { "type": "string", "minLength": 1 },
+        "rationale": { "type": "string", "minLength": 1 },
+        "evidence_ids": { "type": "array", "items": { "type": "string" } },
+        "confidence": { "type": "string", "enum": ["LOW", "MEDIUM", "HIGH"] }
+      }
+    },
+    "title": {
+      "type": ["object", "null"],
+      "properties": {
+        "selected": { "type": ["string", "null"] },
+        "alternatives": { "type": "array", "items": { "type": "string" } },
+        "promise": { "type": ["string", "null"] }
+      }
+    },
+    "hook": {
+      "type": ["object", "null"],
+      "properties": {
+        "selected": { "type": ["string", "null"] },
+        "alternatives": { "type": "array", "items": { "type": "string" } },
+        "heuristic_basis": { "type": ["string", "null"] }
+      }
+    },
+    "first_frame": {
+      "type": ["object", "null"],
+      "properties": {
+        "concept": { "type": ["string", "null"] },
+        "aspect_ratio": { "type": ["string", "null"] }
+      }
+    },
+    "script": {
+      "type": ["object", "null"],
+      "properties": {
+        "text": { "type": ["string", "null"] },
+        "word_count": { "type": ["integer", "null"], "minimum": 0 },
+        "wpm_basis": { "type": ["number", "null"], "exclusiveMinimum": 0 },
+        "duration_estimate_s": { "type": ["number", "null"], "exclusiveMinimum": 0 },
+        "timing_basis": {
+          "type": ["string", "null"],
+          "enum": ["ESTIMATED_WPM", "MEASURED_AUDIO", "NOT_APPLICABLE", null]
+        }
+      }
+    },
+    "storyboard": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "start_s", "end_s", "timing_basis", "voice", "visual"],
+        "properties": {
+          "id": { "type": "string" },
+          "start_s": { "type": "number", "minimum": 0 },
+          "end_s": { "type": "number", "minimum": 0 },
+          "timing_basis": { "type": "string", "enum": ["ESTIMATED_WPM", "MEASURED_AUDIO"] },
+          "voice": { "type": "string" },
+          "visual": { "type": "string" },
+          "overlay": { "type": ["string", "null"] },
+          "audio": { "type": ["string", "null"] },
+          "evidence_ids": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "thumbnail": {
+      "type": ["object", "null"],
+      "properties": {
+        "concept": { "type": ["string", "null"] },
+        "text": { "type": ["string", "null"] },
+        "prompt": { "type": ["string", "null"] },
+        "aspect_ratio": { "type": ["string", "null"] },
+        "status": {
+          "type": ["string", "null"],
+          "enum": ["CONCEPT_ONLY", "GENERATED_EXTERNALLY", "NOT_APPLICABLE", null]
+        }
+      }
+    },
+    "upload": {
+      "type": ["object", "null"],
+      "properties": {
+        "description": { "type": ["string", "null"] },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "chapters": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "analytics": {
+      "type": ["object", "null"],
+      "properties": {
+        "metrics": { "type": ["object", "null"] },
+        "cohort": { "type": ["object", "null"] },
+        "findings": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "content_plan": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "day": { "type": ["integer", "string"] },
+          "format": { "type": "string" },
+          "pillar": { "type": "string" },
+          "title": { "type": "string" },
+          "hook": { "type": "string" },
+          "status": { "type": "string" }
+        }
+      }
+    },
+    "experiment": {
+      "type": ["object", "null"],
+      "properties": {
+        "hypothesis": { "type": ["string", "null"] },
+        "metric": { "type": ["string", "null"] },
+        "window": { "type": ["string", "null"] },
+        "controls": { "type": ["string", "null"] },
+        "decision": { "type": ["string", "null"] }
+      }
+    },
+    "quality": {
+      "type": "object",
+      "required": ["checks", "status", "unresolved"],
+      "properties": {
+        "checks": { "type": "array", "items": { "type": "string" } },
+        "status": {
+          "type": "string",
+          "enum": ["DRAFT", "READY_FOR_CREATOR_REVIEW", "BLOCKED_MISSING_EVIDENCE"]
+        },
+        "unresolved": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "files": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}

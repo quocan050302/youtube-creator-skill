@@ -1,0 +1,2 @@
+day,date_optional,slot,format,pillar,angle,target_viewer,title,hook,first_frame,script_status,thumbnail_brief,duration_target_s,evidence_status,kpi_hypothesis,est_hours,priority
+1,,1,SHORT,core-pillar,"Replace with specific angle","Specific viewer segment","Working title following TT-01","Opening line (0-3s)","Concrete opening visual","OUTLINE","Focal subject + 0-3 word text",45,UNVERIFIED,"Test immediate visual action vs prior setup",2.0,P0
