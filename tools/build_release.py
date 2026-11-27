@@ -31,7 +31,7 @@ BANNED_EXTS = {
     ".mp4", ".mov", ".wav", ".mp3", ".png", ".jpg", ".jpeg", ".gif", ".pdf",
     ".pyc", ".pyo",
 }
-TEXT_EXTS = {".md", ".txt", ".py", ".json", ".csv", ".yml", ".yaml"}
+TEXT_EXTS = {".md", ".txt", ".py", ".json", ".csv", ".yml", ".yaml", ".srt"}
 
 
 def _sha256_bytes(data: bytes) -> str:
