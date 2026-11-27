@@ -1,0 +1,185 @@
+{
+  "schema_version": "1.0.0",
+  "pack_id": "demo-02-scam-awareness-reshipping",
+  "created_at_utc": "2026-11-27T09:46:00Z",
+  "mode": "GENERATE",
+  "format": "SHORT",
+  "language": "en-US",
+  "audience_market": "US",
+  "inputs": [
+    {
+      "id": "IN-01",
+      "type": "user_prompt",
+      "source": "native_skill_eval_EV-03",
+      "scope": "45s defensive scam awareness Short on work-from-home reshipping jobs",
+      "observed_at": "2026-11-27"
+    }
+  ],
+  "capabilities": {
+    "used": ["TEXT_ONLY", "FILE_READ", "FILE_WRITE", "CODE", "WEB"],
+    "unavailable": ["VISION", "AUDIO/VIDEO"]
+  },
+  "assumptions": [
+    "Solo/faceless B-roll friendly desk setup; 175-185 WPM brisk narration plus ~2.5s pauses.",
+    "Strictly defensive consumer-safety framing; no CTA requested."
+  ],
+  "limitations": [
+    "Duration is WPM-estimated (ESTIMATED_WPM), not measured from audio.",
+    "Visual brief is CONCEPT_ONLY; no image file generated.",
+    "Educational safety awareness only, not individualized legal advice."
+  ],
+  "evidence": [
+    {
+      "id": "E01",
+      "url_or_user_input": "https://www.uspis.gov/news/scam-article/work-from-home-scams-and-reshipping-schemes-2",
+      "claim": "Work-from-home reshipping scams trick job seekers into receiving and forwarding packages purchased with stolen payment methods, leaving victims unpaid and on the shipping trail.",
+      "source_date": null,
+      "retrieved_at": "2026-11-27",
+      "status": "VERIFIED_FACT"
+    },
+    {
+      "id": "E02",
+      "url_or_user_input": "https://reportfraud.ftc.gov/",
+      "claim": "US consumers can report fraudulent job and reshipping offers to the Federal Trade Commission at ReportFraud.ftc.gov.",
+      "source_date": null,
+      "retrieved_at": "2026-11-27",
+      "status": "VERIFIED_FACT"
+    },
+    {
+      "id": "E03",
+      "url_or_user_input": "https://www.identitytheft.gov/",
+      "claim": "Job seekers who already shared sensitive identity or bank details can follow recovery steps at IdentityTheft.gov.",
+      "source_date": null,
+      "retrieved_at": "2026-11-27",
+      "status": "VERIFIED_FACT"
+    }
+  ],
+  "recommendation": {
+    "action": "Lead directly with a warning against work-from-home parcel relabeling offers, show the home-address liability trail defensively, and end on a 3-step decline/verify/report rule.",
+    "rationale": "Targets the exact job-listing hook victims encounter while keeping content 100% defensive and actionable.",
+    "evidence_ids": ["E01", "E02"],
+    "confidence": "HIGH"
+  },
+  "title": {
+    "selected": "Why Reshipping Jobs Leave You Liable",
+    "alternatives": [
+      "The Remote Shipping Job That's a Trap",
+      "Why Home Package Jobs Put You at Risk"
+    ],
+    "promise": "Explain why remote package-reshipping jobs are scams that leave recipients unpaid and legally exposed."
+  },
+  "hook": {
+    "selected": "If a work-from-home job pays you to inspect and reship packages, stop before you sign anything.",
+    "alternatives": [
+      "Legitimate retailers never pay strangers to relabel packages from their living room—here is the trap."
+    ],
+    "heuristic_basis": "scripts/hookscore.py --pov direct -> rubric_total 8/10, formula The Warning (lexical heuristic only)"
+  },
+  "first_frame": {
+    "concept": "9:16 overhead desk shot of a hand pausing with a blank label over a plain cardboard box beside a generic remote-job card on a laptop.",
+    "aspect_ratio": "9:16"
+  },
+  "script": {
+    "text": "If a work-from-home job pays you to inspect and reship packages, stop before you sign anything. The listing looks routine: flexible hours and steady pay for checking boxes delivered to your doorstep. Here's the red flag—legitimate retailers don't run shipping hubs through a stranger's home address. In a reshipping scam, criminals typically buy goods with stolen payment details and ship them to you. You relabel and forward each box, putting your name and home address on the shipping trail while they stay hidden. When payday hits, the paycheck bounces or never arrives—leaving you facing fraud investigators or postal inspectors. Never accept a remote job routing packages through your house, verify employers through their official website, and report suspicious offers to official consumer-protection or postal authorities.",
+    "word_count": 127,
+    "wpm_basis": 180,
+    "duration_estimate_s": 45.0,
+    "timing_basis": "ESTIMATED_WPM"
+  },
+  "storyboard": [
+    {
+      "id": "B01",
+      "start_s": 0.0,
+      "end_s": 6.0,
+      "timing_basis": "ESTIMATED_WPM",
+      "voice": "If a work-from-home job pays you to inspect and reship packages, stop before you sign anything.",
+      "visual": "Overhead desk shot: hand pauses holding blank label over plain brown box beside generic remote job screen.",
+      "overlay": "DON'T RELABEL",
+      "audio": "Crisp stop/pause tone",
+      "evidence_ids": ["E01"]
+    },
+    {
+      "id": "B02",
+      "start_s": 6.0,
+      "end_s": 14.0,
+      "timing_basis": "ESTIMATED_WPM",
+      "voice": "The listing looks routine... legitimate retailers don't run shipping hubs through a stranger's home address.",
+      "visual": "Generic clean job-post UI graphic highlighting remote box forwarding, red underline flashes under home address.",
+      "overlay": "RED FLAG",
+      "audio": "Subtle low tension pulse",
+      "evidence_ids": ["E01"]
+    },
+    {
+      "id": "B03",
+      "start_s": 14.0,
+      "end_s": 27.0,
+      "timing_basis": "ESTIMATED_WPM",
+      "voice": "In a reshipping scam, criminals typically buy goods with stolen payment details... putting your name and home address on the shipping trail while they stay hidden.",
+      "visual": "Simple defensive 2D flow diagram showing Stolen Payment -> Your Home Address -> Forwarded Box with victim address highlighted.",
+      "overlay": "YOUR NAME ON THE TRAIL",
+      "audio": "Steady muted rhythmic tick",
+      "evidence_ids": ["E01"]
+    },
+    {
+      "id": "B04",
+      "start_s": 27.0,
+      "end_s": 35.0,
+      "timing_basis": "ESTIMATED_WPM",
+      "voice": "When payday hits, the paycheck bounces or never arrives—leaving you facing fraud investigators or postal inspectors.",
+      "visual": "Generic payroll alert flips to Unpaid/Returned next to plain stylized official inquiry envelope.",
+      "overlay": "NO PAYCHECK + LIABILITY",
+      "audio": "Subtle hollow drop cue",
+      "evidence_ids": ["E01"]
+    },
+    {
+      "id": "B05",
+      "start_s": 35.0,
+      "end_s": 45.0,
+      "timing_basis": "ESTIMATED_WPM",
+      "voice": "Never accept a remote job routing packages through your house, verify employers through their official website, and report suspicious offers to official consumer-protection or postal authorities.",
+      "visual": "Clean high-contrast 3-step checklist card: Decline home reshipping, Verify official site, Report to FTC/USPIS.",
+      "overlay": "1. DECLINE  2. VERIFY  3. REPORT",
+      "audio": "Calm resolved final beat",
+      "evidence_ids": ["E02"]
+    }
+  ],
+  "thumbnail": {
+    "concept": "9:16 overhead desk shot of a plain cardboard box with blank shipping label being peeled beside a generic remote job card.",
+    "text": "DON'T RELABEL",
+    "prompt": "Vertical 9:16 clean overhead studio photograph of a plain brown cardboard shipping box on a dark matte desk, hand pausing while peeling a blank white shipping label off the box beside a minimalist laptop showing a blurred generic job card, high-contrast directional lighting, realistic documentary aesthetic, zero logos, no watermark.",
+    "aspect_ratio": "9:16",
+    "status": "CONCEPT_ONLY"
+  },
+  "upload": {
+    "description": "Work-from-home offers that pay you to receive, inspect, and reship boxes from your home address are a well-known reshipping scam. Learn the red flags and official US reporting channels (USPIS, ReportFraud.ftc.gov, IdentityTheft.gov).",
+    "tags": ["reshipping scam", "work from home scam", "package forwarding scam", "job scam red flags", "consumer safety", "scam awareness", "uspis", "ftc report fraud"],
+    "chapters": []
+  },
+  "analytics": null,
+  "content_plan": [],
+  "experiment": {
+    "hypothesis": "Opening 0-3s on a generic job-listing UI mockup vs. a physical cardboard box prop changes Shorts stayed_to_watch_pct by >=5 pp without lowering APV.",
+    "metric": "stayed_to_watch_pct and APV",
+    "window": "First 7 days post-publish across >=3 comparable scam-awareness Shorts",
+    "controls": "Same warning hook, ~45s duration, KH-01 Mode C defensive arc, zero CTA",
+    "decision": "PENDING"
+  },
+  "quality": {
+    "checks": ["title_linter.py_100", "hookscore.py_8_of_10", "defensive_only_verified", "tt01_pass", "kh01_mode_c_pass", "evidence_verified_2026_11_27"],
+    "status": "READY_FOR_CREATOR_REVIEW",
+    "unresolved": []
+  },
+  "files": [
+    "README.md",
+    "CREATOR_BRIEF.md",
+    "RESEARCH.md",
+    "TITLE_HOOKS.md",
+    "SCRIPT.txt",
+    "STORYBOARD.csv",
+    "THUMBNAIL_PROMPT.txt",
+    "UPLOAD_PACKAGE.md",
+    "RELEASE_REVIEW.md",
+    "NEXT_EXPERIMENT.md",
+    "creator-pack.json"
+  ]
+}

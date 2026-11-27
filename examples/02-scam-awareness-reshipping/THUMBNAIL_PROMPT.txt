@@ -1,0 +1,13 @@
+STATUS: CONCEPT_ONLY (No image file generated)
+ASPECT_RATIO: 9:16 (YouTube Shorts first frame / cover concept)
+
+FOCAL SUBJECT & ACTION:
+Vertical 9:16 overhead desk shot of a plain brown cardboard parcel with a partially peeled blank white shipping label being replaced by a second blank label, positioned beside a laptop displaying a clean generic "Remote Package Inspector" job card.
+
+COMPOSITION, LIGHTING & SAFE AREA:
+- High contrast between warm brown cardboard, bright white blank label, and clean dark matte desk surface.
+- Zero real personal names, zero real addresses, zero trademarked carrier or retailer logos.
+- Optional opening/cover text: "DON'T RELABEL" in bold clean sans-serif in the upper-middle 60% mobile safe zone, clear of YouTube Shorts right-side action buttons and bottom caption/title bar.
+
+IMAGE PROMPT (For Concept Reference or Thumbnail Shoot):
+Vertical 9:16 clean overhead studio photograph of a plain brown cardboard shipping box on a dark matte desk, a hand pausing while peeling a blank white shipping label off the box next to a minimalist laptop screen showing a blurred generic job posting card, crisp high-contrast directional lighting, realistic documentary consumer-safety aesthetic, zero logos, zero personal text, no watermark.

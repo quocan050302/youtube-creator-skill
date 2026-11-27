@@ -1,0 +1,177 @@
+{
+  "schema_version": "1.0.0",
+  "pack_id": "demo-01-science-short-copper-magnet",
+  "created_at_utc": "2026-11-27T09:44:00Z",
+  "mode": "GENERATE",
+  "format": "SHORT",
+  "language": "en-US",
+  "audience_market": "US",
+  "inputs": [
+    {
+      "id": "IN-01",
+      "type": "user_prompt",
+      "source": "native_skill_eval_EV-01",
+      "scope": "35-45s faceless science Short on copper pipe magnetic braking, no CTA",
+      "observed_at": "2026-11-27"
+    }
+  ],
+  "capabilities": {
+    "used": ["TEXT_ONLY", "FILE_READ", "FILE_WRITE", "CODE", "WEB"],
+    "unavailable": ["VISION", "AUDIO/VIDEO"]
+  },
+  "assumptions": [
+    "Brisk faceless science narration at 170-195 WPM (185 WPM midpoint) plus ~2.5s visual drop pauses.",
+    "No CTA per explicit creator constraint."
+  ],
+  "limitations": [
+    "Duration is WPM-estimated (ESTIMATED_WPM), not measured from recorded audio.",
+    "Thumbnail/first-frame brief is CONCEPT_ONLY; no image file generated.",
+    "title_linter.py and hookscore.py are lexical heuristics, not CTR or retention predictors."
+  ],
+  "evidence": [
+    {
+      "id": "E01",
+      "url_or_user_input": "https://web.physics.ucsb.edu/~lecturedemonstrations/Composer/Pages/72.09.html",
+      "claim": "Copper is non-ferromagnetic, yet a magnet falling through a copper pipe induces swirling eddy currents whose opposing magnetic field (Lenz's law) slows the descent.",
+      "source_date": null,
+      "retrieved_at": "2026-11-27",
+      "status": "VERIFIED_FACT"
+    },
+    {
+      "id": "E02",
+      "url_or_user_input": "https://web.physics.ucsb.edu/~lecturedemonstrations/Composer/Pages/72.09.html",
+      "claim": "Velocity-dependent eddy-current braking slows moving conductors without physical contact or pad wear, as applied in magnetic roller-coaster brakes.",
+      "source_date": null,
+      "retrieved_at": "2026-11-27",
+      "status": "VERIFIED_FACT"
+    }
+  ],
+  "recommendation": {
+    "action": "Open immediately on the non-magnetic copper paradox paired with an unmagnetized steel-bolt control drop, then close on contactless roller-coaster braking with zero CTA.",
+    "rationale": "Physical contradiction plus immediate control test creates visual clarity in 0-3s while keeping the science strictly accurate.",
+    "evidence_ids": ["E01", "E02"],
+    "confidence": "HIGH"
+  },
+  "title": {
+    "selected": "Why a Copper Pipe Slows Falling Magnets",
+    "alternatives": [
+      "How Copper Brakes a Falling Magnet Mid-Air",
+      "Why Falling Magnets Float Inside Copper Pipes"
+    ],
+    "promise": "Explain why non-magnetic copper slows a falling magnet via eddy currents and Lenz's law."
+  },
+  "hook": {
+    "selected": "Touch a magnet to a copper pipe—nothing sticks. Drop it inside, and why does it crawl down in slow motion?",
+    "alternatives": [
+      "Copper isn't magnetic, yet drop a magnet down a copper pipe and gravity seems to slow to a crawl."
+    ],
+    "heuristic_basis": "scripts/hookscore.py --pov narrative -> rubric_total 9/10, formula The Question (lexical heuristic only)"
+  },
+  "first_frame": {
+    "concept": "9:16 vertical macro tabletop shot showing silver neodymium magnet mid-descent at the top of an upright bare copper pipe over dark matte desk with steel bolt below.",
+    "aspect_ratio": "9:16"
+  },
+  "script": {
+    "text": "Touch a magnet to a copper pipe—nothing sticks. Drop it inside, and why does it crawl down in slow motion? Drop an unmagnetized steel bolt the same size, and it hits the table instantly. Copper isn't ferromagnetic, so nothing pulls on a still magnet. The brake only appears once it moves. As the falling magnet's field sweeps down the conductive copper, it induces swirling electric loops called eddy currents. By Lenz's law, those currents generate an opposing magnetic field that pushes back against the fall. Think of dragging a paddle through water—faster push, stronger pushback—except here there's no fluid, just electromagnetism. Roller coasters use this exact contactless braking to slow cars with zero brake pads wearing out.",
+    "word_count": 120,
+    "wpm_basis": 185,
+    "duration_estimate_s": 42.0,
+    "timing_basis": "ESTIMATED_WPM"
+  },
+  "storyboard": [
+    {
+      "id": "B01",
+      "start_s": 0.0,
+      "end_s": 6.0,
+      "timing_basis": "ESTIMATED_WPM",
+      "voice": "Touch a magnet to a copper pipe—nothing sticks. Drop it inside, and why does it crawl down in slow motion?",
+      "visual": "Hand taps magnet on outside of upright copper pipe (slides off), then drops magnet into pipe showing slow descent.",
+      "overlay": "INVISIBLE BRAKE (0-2.5s only)",
+      "audio": "Crisp metallic tap then brief silence beat during drop",
+      "evidence_ids": ["E01"]
+    },
+    {
+      "id": "B02",
+      "start_s": 6.0,
+      "end_s": 12.0,
+      "timing_basis": "ESTIMATED_WPM",
+      "voice": "Drop an unmagnetized steel bolt the same size, and it hits the table instantly.",
+      "visual": "Side-by-side control drop: steel bolt falls straight through copper pipe onto matte dark table.",
+      "overlay": "STEEL BOLT vs MAGNET",
+      "audio": "Sharp metallic clink on impact",
+      "evidence_ids": ["E01"]
+    },
+    {
+      "id": "B03",
+      "start_s": 12.0,
+      "end_s": 26.0,
+      "timing_basis": "ESTIMATED_WPM",
+      "voice": "Copper isn't ferromagnetic... By Lenz's law, those currents generate an opposing magnetic field that pushes back against the fall.",
+      "visual": "Clean 2D cutaway overlay: downward magnet arrow, circular current rings in copper wall, upward opposing field arrow.",
+      "overlay": "EDDY CURRENTS -> LENZ'S LAW",
+      "audio": "Subtle low hum rising with downward motion",
+      "evidence_ids": ["E01"]
+    },
+    {
+      "id": "B04",
+      "start_s": 26.0,
+      "end_s": 34.0,
+      "timing_basis": "ESTIMATED_WPM",
+      "voice": "Think of dragging a paddle through water—faster push, stronger pushback—except here there's no fluid, just electromagnetism.",
+      "visual": "Minimal 2D paddle-in-water drag graphic crossfading back to live magnet exiting bottom of copper pipe.",
+      "overlay": null,
+      "audio": "Soft water-drag cue fading to clean room tone",
+      "evidence_ids": ["E01"]
+    },
+    {
+      "id": "B05",
+      "start_s": 34.0,
+      "end_s": 42.0,
+      "timing_basis": "ESTIMATED_WPM",
+      "voice": "Roller coasters use this exact contactless braking to slow cars with zero brake pads wearing out.",
+      "visual": "Roller-coaster metal fin passing smoothly between magnetic brake calipers.",
+      "overlay": "ZERO BRAKE PADS",
+      "audio": "Smooth magnetic whoosh; crisp finish",
+      "evidence_ids": ["E02"]
+    }
+  ],
+  "thumbnail": {
+    "concept": "9:16 vertical macro tabletop shot of silver neodymium magnet mid-descent at top of bare copper pipe with steel bolt below.",
+    "text": "INVISIBLE BRAKE",
+    "prompt": "Vertical 9:16 studio macro photograph of a shiny cylindrical silver neodymium magnet visibly floating mid-drop inside the upper rim of an upright bare copper pipe, plain matte dark charcoal tabletop below with a steel bolt resting on it, crisp directional side lighting, minimalist science aesthetic, high contrast, no logos.",
+    "aspect_ratio": "9:16",
+    "status": "CONCEPT_ONLY"
+  },
+  "upload": {
+    "description": "Copper isn't magnetic, yet dropping a magnet down a copper pipe slows its fall dramatically. Here is how Faraday's law, eddy currents, and Lenz's law create contactless magnetic braking—the same physics used to slow roller coasters.",
+    "tags": ["eddy currents", "lenz law", "magnet copper pipe", "magnetic braking", "faraday law", "physics demonstration", "electromagnetism", "science shorts"],
+    "chapters": []
+  },
+  "analytics": null,
+  "content_plan": [],
+  "experiment": {
+    "hypothesis": "Opening frame 0.0s directly on a simultaneous bolt-vs-magnet drop raises Shorts stayed_to_watch_pct by >=5 pp without lowering APV.",
+    "metric": "stayed_to_watch_pct and APV",
+    "window": "First 7 days post-publish across comparable science Shorts",
+    "controls": "Same faceless macro lighting, ~40s duration, zero CTA",
+    "decision": "PENDING"
+  },
+  "quality": {
+    "checks": ["title_linter.py_100", "hookscore.py_9_of_10", "tt01_pass", "kh01_mode_b_pass", "no_cta_verified", "evidence_verified_2026_11_27"],
+    "status": "READY_FOR_CREATOR_REVIEW",
+    "unresolved": []
+  },
+  "files": [
+    "README.md",
+    "CREATOR_BRIEF.md",
+    "RESEARCH.md",
+    "TITLE_HOOKS.md",
+    "SCRIPT.txt",
+    "STORYBOARD.csv",
+    "THUMBNAIL_PROMPT.txt",
+    "UPLOAD_PACKAGE.md",
+    "RELEASE_REVIEW.md",
+    "NEXT_EXPERIMENT.md",
+    "creator-pack.json"
+  ]
+}

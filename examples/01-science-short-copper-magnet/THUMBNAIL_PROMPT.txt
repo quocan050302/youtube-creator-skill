@@ -1,0 +1,13 @@
+STATUS: CONCEPT_ONLY (No image file generated)
+ASPECT_RATIO: 9:16 (YouTube Shorts first frame / cover concept)
+
+FOCAL SUBJECT & ACTION:
+Vertical macro tabletop shot of an upright bare polished copper pipe held over a clean dark matte desk. A bright silver cylindrical neodymium magnet is suspended mid-descent at the top cutaway/rim of the pipe while a plain unmagnetized steel bolt rests on the table below to anchor the contrast.
+
+COMPOSITION, LIGHTING & SAFE AREA:
+- High color contrast: warm metallic copper + bright silver magnet against uncluttered dark charcoal/slate desk backdrop.
+- Crisp directional side key light revealing copper texture; zero background clutter, zero stock faces, zero third-party logos.
+- Optional cover/opening text: "INVISIBLE BRAKE" in bold clean sans-serif positioned in the upper-middle 60% safe zone (well clear of YouTube Shorts right-side action buttons and bottom title/caption bar).
+
+IMAGE PROMPT (For Concept Reference or Thumbnail Shoot):
+Vertical 9:16 studio macro photograph of a shiny cylindrical silver neodymium magnet visibly floating mid-drop inside the upper rim of an upright bare copper pipe, plain matte dark charcoal tabletop below with a steel bolt resting on it, crisp directional side lighting, clean minimalist science demonstration aesthetic, high contrast, shallow depth of field, no text watermark, no logos.

@@ -1,0 +1,23 @@
+1
+00:00:00,000 --> 00:00:03,200
+A copper pipe isn't magnetic, yet it can slow a falling magnet to a crawl.
+
+2
+00:00:03,400 --> 00:00:11,800
+Watch what happens when we drop a steel bolt through first — straight through in half a second.
+
+3
+00:00:12,100 --> 00:00:16,500
+Now before we explain the physics, make sure you follow my channel and check out the link in my bio for more science.
+
+4
+00:00:16,800 --> 00:00:27,500
+Okay, now drop the neodymium magnet. It takes nearly four seconds to fall out the bottom.
+
+5
+00:00:27,800 --> 00:00:35,000
+Here is the slow-motion cutaway: moving magnetic fields push electric loops called eddy currents inside the copper wall.
+
+6
+00:00:35,200 --> 00:00:44,800
+Those currents create an opposing magnetic push that brakes the fall without ever touching the magnet.
