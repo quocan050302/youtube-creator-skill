@@ -1,0 +1,8 @@
+[
+  {"channel": "PhysicsLab", "video_id": "vid_01", "title": "Why Copper Stops a Falling Magnet", "format": "SHORT", "published_at": "2026-11-10", "observed_at": "2026-11-25", "views": 500, "duration_s": 42},
+  {"channel": "PhysicsLab", "video_id": "vid_02", "title": "How Ice Floats on Water", "format": "SHORT", "published_at": "2026-11-11", "observed_at": "2026-11-25", "views": 50, "duration_s": 38},
+  {"channel": "PhysicsLab", "video_id": "vid_03", "title": "Why Bubbles Are Round", "format": "SHORT", "published_at": "2026-11-12", "observed_at": "2026-11-25", "views": 100, "duration_s": 40},
+  {"channel": "PhysicsLab", "video_id": "vid_04", "title": "Why Bridges Have Expansion Gaps", "format": "SHORT", "published_at": "2026-11-13", "observed_at": "2026-11-25", "views": 100, "duration_s": 44},
+  {"channel": "PhysicsLab", "video_id": "vid_05", "title": "How Acoustic Foam Absorbs Echo", "format": "SHORT", "published_at": "2026-11-14", "observed_at": "2026-11-25", "views": 150, "duration_s": 41},
+  {"channel": "PhysicsLab", "video_id": "vid_06", "title": "Why Skyscrapers Sway in Wind", "format": "SHORT", "published_at": "2026-11-15", "observed_at": "2026-11-25", "views": 200, "duration_s": 45}
+]

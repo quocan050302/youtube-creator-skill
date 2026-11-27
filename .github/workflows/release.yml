@@ -1,0 +1,87 @@
+name: Release — Candidate & Tag Distribution
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version without leading v (e.g. 1.0.0-rc.1 or 1.0.0)"
+        required: true
+        default: "1.0.0-rc.1"
+      draft:
+        description: "Create as Draft GitHub Release (recommended for owner review)"
+        required: true
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify-and-build:
+    name: Verify & Build Reproducible Archives
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run full QA gate suite
+        run: python tools/run_qa.py --version "${{ inputs.version }}"
+
+      - name: Run eval and demo pack verification
+        run: python tools/run_evals.py
+
+      - name: Upload built release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: youtube-creator-skill-v${{ inputs.version }}
+          path: |
+            dist/youtube-creator-skill-agensi-v${{ inputs.version }}.zip
+            dist/youtube-creator-skill-universal-v${{ inputs.version }}.zip
+            dist/UNIVERSAL_PROMPT.md
+            dist/SHA256SUMS.txt
+            dist/release-manifest.json
+            dist/RELEASE_NOTES.md
+
+  publish-github-release:
+    name: Create GitHub Release (Owner Controlled)
+    needs: verify-and-build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download verified artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: youtube-creator-skill-v${{ inputs.version }}
+          path: dist
+
+      - name: Verify SHA256SUMS before publishing
+        working-directory: dist
+        run: sha256sum -c SHA256SUMS.txt
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PRERELEASE_FLAG=""
+          if [[ "${{ inputs.version }}" == *"-rc."* ]]; then
+            PRERELEASE_FLAG="--prerelease"
+          fi
+          DRAFT_FLAG=""
+          if [[ "${{ inputs.draft }}" == "true" ]]; then
+            DRAFT_FLAG="--draft"
+          fi
+          gh release create "v${{ inputs.version }}" \
+            --title "YouTube Creator Intelligence v${{ inputs.version }}" \
+            --notes-file dist/RELEASE_NOTES.md \
+            $DRAFT_FLAG $PRERELEASE_FLAG \
+            "dist/youtube-creator-skill-agensi-v${{ inputs.version }}.zip" \
+            "dist/youtube-creator-skill-universal-v${{ inputs.version }}.zip" \
+            "dist/UNIVERSAL_PROMPT.md" \
+            "dist/SHA256SUMS.txt" \
+            "dist/release-manifest.json"

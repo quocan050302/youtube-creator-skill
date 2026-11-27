@@ -1,0 +1,57 @@
+name: CI — Offline Deterministic QA & Packaging
+
+on:
+  push:
+    branches: ["main", "master", "feature/**"]
+  pull_request:
+    branches: ["main", "master"]
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic-qa:
+    name: QA (${{ matrix.os }} / Python ${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ["3.10", "3.12"]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Validate canonical SKILL.md and script isolation rules
+        run: python tools/validate_skill.py
+
+      - name: Audit MIT licenses, upstream parity, and public path safety
+        run: python tools/audit_licenses.py
+
+      - name: Verify universal prompt parity
+        run: python tools/build_universal_prompt.py --check
+
+      - name: Run unit, integration, security, and standalone CLI test suite
+        run: python -m unittest discover -s tests -p "test_*.py" -v
+
+      - name: Run deterministic eval catalog & demo pack verification
+        run: python tools/run_evals.py
+
+      - name: Build and verify byte-for-byte reproducible release archives
+        run: python tools/build_release.py --version 1.0.0-rc.1 --verify
+
+      - name: Upload checksum manifest (Ubuntu 3.12)
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-candidate-checksums
+          path: |
+            dist/SHA256SUMS.txt
+            dist/release-manifest.json
+            dist/RELEASE_NOTES.md
