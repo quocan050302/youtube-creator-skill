@@ -6,6 +6,16 @@ will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0-rc.4] - 2026-11-27
+
+**Status:** Release Candidate Micro-Fix (`FINAL MICRO-FIX — RETENTION UNIT PRECEDENCE`; external multi-client certification and owner publication approval remain pending).
+
+### Fixed
+- **`scripts/retention.py` Unit Precedence (`parse_curve`, `normalize_time`, `normalize_rate`):** Enforced strict unit precedence order **`CLI explicit > explicit CSV header / JSON key > warned inference`**, returning exit code `2` on ambiguous or contradictory units/keys.
+  - Preserved CSV `retention_pct` small values (e.g., `1, 0.8, 0.5`) in percent without multiplying by `100` (while explicit `--rate-unit ratio` or `retention_ratio` scales `x100`).
+  - Propagated explicit JSON x/y keys across object lists, `{"points": [...]}`, and columnar array objects so JSON `time_s = [0, 50, 100]` (`duration=120`) retains `[0.0, 100.0]s` and JSON `pct = [0, 20, 40]` (`duration=200`) converts to `[0.0, 80.0]s`.
+  - Rejected conflicting/mixed JSON keys, contradictory headers (`seconds_pct`, `retention_pct_ratio`), header-vs-`%` mismatches, and ambiguous unitless axes cleanly with exit code `2`.
+
 ## [1.0.0-rc.3] - 2026-11-27
 
 **Status:** Release Candidate Hotfix (`YT-01.R1.A6.HOTFIX` — Final Data Integrity; external multi-client certification and owner publication approval remain pending).

@@ -12,7 +12,7 @@
 - **Display Title:** `YouTube Creator Intelligence — Free AI Skill`
 - **Canonical Skill Name (`SKILL.md`):** `youtube-creator-skill`
 - **Pricing:** `FREE ($0)` *(per Agensi Creator FAQ, no payout method is required for free listings; open-source MIT skills are explicitly permitted when preserving license notices).*
-- **Version:** `1.0.0-rc.3` *(bump to `1.0.0` once owner clears stable release gates)*
+- **Version:** `1.0.0-rc.4` *(bump to `1.0.0` once owner clears stable release gates)*
 - **Suggested Category:** `Create -> Writing & Content` (or `Grow -> Social Media` depending on current Agensi UI dropdown)
 - **Suggested Tags / Keywords:** `youtube`, `youtube-shorts`, `scriptwriting`, `retention-analysis`, `channel-audit`, `thumbnails`, `content-strategy`, `youtube-seo`, `open-source`
 - **Short Summary (1–2 sentences):**

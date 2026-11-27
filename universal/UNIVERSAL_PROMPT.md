@@ -1,8 +1,8 @@
 # YouTube Creator Intelligence — Universal Self-Contained Prompt
 
 - **Canonical Skill:** `youtube-creator-skill`
-- **Version:** `1.0.0-rc.3`
-- **Canonical Source SHA-256:** `5ec0b7659b9b77596195721eaf07dfd8b5aed702196d2505687fc5d92e3b6b59`
+- **Version:** `1.0.0-rc.4`
+- **Canonical Source SHA-256:** `15a1673324d288f79d296a2dac887768dbc54f5f0a8357445cb27f80b13120f0`
 - **License:** MIT (Free $0; full notices included in Appendix B)
 - **Use Mode:** Paste this entire file at the start of any chat (ChatGPT, Claude Chat, Gemini, DeepSeek, Grok, Qwen, Copilot, etc.) and follow with your YouTube request. No file links, Python runtime, or API keys are required.
 

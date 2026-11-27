@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Price: Free $0](https://img.shields.io/badge/Price-Free%20%240-blue.svg)](LICENSE)
-[![Status: v1.0.0-rc.3](https://img.shields.io/badge/Release-v1.0.0--rc.3-orange.svg)](CHANGELOG.md)
+[![Status: v1.0.0-rc.4](https://img.shields.io/badge/Release-v1.0.0--rc.4-orange.svg)](CHANGELOG.md)
 [![CI](https://github.com/quocan050302/youtube-creator-skill/actions/workflows/ci.yml/badge.svg)](https://github.com/quocan050302/youtube-creator-skill/actions/workflows/ci.yml)
 
 **Turn a topic, script draft, competitor dataset, or YouTube Studio export into one evidence-backed creative decision and a ready-to-produce Creator Action Pack — then read real post-upload analytics to improve your next video.**

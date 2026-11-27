@@ -16,5 +16,5 @@
    Without an active `WEB` tool, time-sensitive facts (recent patch notes, current platform policy details, live competitor stats) cannot be verified automatically and are marked `UNVERIFIED` / `DRAFT`.
 7. **Validator Scope:**
    `scripts/validate_output.py` validates our defined structural, numeric, evidence-reference, and cross-file subset of `creator-pack.json` v1.0.0 in stdlib Python — it is not a full JSON Schema Draft 2020-12 engine and does not replace human editorial review.
-8. **Release Candidate Scope (`v1.0.0-rc.3`):**
+8. **Release Candidate Scope (`v1.0.0-rc.4`):**
    Multi-client native certification across external desktop/CLI agents (`codex`, `claude`), 3 external web chats, and live Agensi marketplace review remain pending external verification (see `docs/COMPATIBILITY.md`).

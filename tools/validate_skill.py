@@ -135,9 +135,9 @@ def validate_skill_dir(skill_dir: Path) -> dict[str, Any]:
         logic_bytes = len(logic_src.encode("utf-8"))
         total_bytes = len(src.encode("utf-8"))
         script_stats.append({"script": sp.name, "total_bytes": total_bytes, "logic_bytes": logic_bytes})
-        # Internal project ceiling: 24 KiB (adjusted from 20 KiB in v1.0.0-rc.3 so standalone retention.py keeps full CSV/JSON validation intact; Agensi platform limit is 5 MB agent / 50 MB web).
-        if logic_bytes > 24 * 1024:
-            warnings.append(f"Script {sp.name} logic size ({logic_bytes} B) exceeds 24 KiB internal project ceiling.")
+        # Internal project ceiling: 32 KiB (adjusted from 24 KiB in v1.0.0-rc.4 so standalone retention.py keeps full unit-precedence & CSV/JSON validation intact without cutting checks; Agensi platform limit is 5 MB agent / 50 MB web).
+        if logic_bytes > 32 * 1024:
+            warnings.append(f"Script {sp.name} logic size ({logic_bytes} B) exceeds 32 KiB internal project ceiling.")
         for pat, code in banned_script_patterns:
             if pat.search(src):
                 errors.append(f"Script {sp.name} failed static safety check: {code}")

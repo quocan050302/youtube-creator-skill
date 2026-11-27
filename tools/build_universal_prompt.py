@@ -44,7 +44,7 @@ REL_REF_RE = re.compile(r"`(?:references|scripts|assets)/[A-Za-z0-9_.\-/]+`")
 
 def _strip_frontmatter(text: str) -> tuple[str, str]:
     lines = text.splitlines()
-    version = "1.0.0-rc.3"
+    version = "1.0.0-rc.4"
     if lines and lines[0].strip() == "---":
         for i in range(1, len(lines)):
             if lines[i].strip().startswith("version:"):

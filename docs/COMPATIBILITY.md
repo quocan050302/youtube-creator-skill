@@ -33,4 +33,4 @@ This matrix explicitly separates **officially documented paths (`DOC_ONLY`)** fr
 
 ## Release Gate Transparency
 
-Because external native clients (`codex`, `claude`), 3 distinct consumer web chats, and live Agensi upload were not executed live, this release is honestly versioned **`v1.0.0-rc.3`** (Release Candidate) rather than certified multi-client stable `v1.0.0`.
+Because external native clients (`codex`, `claude`), 3 distinct consumer web chats, and live Agensi upload were not executed live, this release is honestly versioned **`v1.0.0-rc.4`** (Release Candidate) rather than certified multi-client stable `v1.0.0`.

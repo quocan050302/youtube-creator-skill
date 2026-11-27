@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Release version without leading v (e.g. 1.0.0-rc.3 or 1.0.0)"
+        description: "Release version without leading v (e.g. 1.0.0-rc.4 or 1.0.0)"
         required: true
-        default: "1.0.0-rc.3"
+        default: "1.0.0-rc.4"
       target_sha:
         description: "Optional 40-hex commit SHA to pin release build (defaults to checked-out HEAD)"
         required: false

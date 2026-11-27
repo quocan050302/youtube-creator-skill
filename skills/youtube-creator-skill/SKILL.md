@@ -3,7 +3,7 @@ name: youtube-creator-skill
 description: Research YouTube niches and competitors, audit channels, plan content, write Shorts and long-form scripts, hooks, titles, thumbnail briefs, and analyze retention or analytics. Use when creators need original video ideas, a production-ready content pack, or evidence-based improvements for their next upload.
 license: MIT
 metadata:
-  version: "1.0.0-rc.3"
+  version: "1.0.0-rc.4"
   author: quocan050302
 ---
 

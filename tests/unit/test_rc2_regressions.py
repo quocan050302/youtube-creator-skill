@@ -76,8 +76,8 @@ class TestRC2Regressions(unittest.TestCase):
         self.assertEqual(out["overview"]["dropped_invalid_rows"], 1)
         self.assertEqual(out["axis"]["dropped_invalid_rows"], 1)
         self.assertTrue(any("Skipped 1" in w and "NaN" in w for w in out["warnings"]))
-        # Verify retention.py stays within documented 24 KiB internal logic ceiling (adjusted in RC.3 without cutting validation)
-        self.assertLessEqual((SCRIPTS_DIR / "retention.py").stat().st_size, 24 * 1024)
+        # Verify retention.py stays within documented 32 KiB internal logic ceiling (adjusted in RC.4 without cutting validation)
+        self.assertLessEqual((SCRIPTS_DIR / "retention.py").stat().st_size, 32 * 1024)
 
     def test_iss06_malformed_json_rejected_exit_code_2(self) -> None:
         with tempfile.TemporaryDirectory() as td:
@@ -92,7 +92,7 @@ class TestRC2Regressions(unittest.TestCase):
         content, meta = build_universal_prompt.build_universal_prompt(REPO_ROOT)
         self.assertEqual(meta["unresolved_links"], 0)
         self.assertGreaterEqual(len(build_universal_prompt.ALLOWLISTED_SECTIONS), 21)
-        self.assertIn("1.0.0-rc.3", content)
+        self.assertIn("1.0.0-rc.4", content)
 
     def test_iss08_validators_exit_1_when_invalid(self) -> None:
         p_ch = subprocess.run(

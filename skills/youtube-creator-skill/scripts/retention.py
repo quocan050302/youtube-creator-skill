@@ -169,17 +169,74 @@ def parse_curve(raw_text: str) -> tuple[list[tuple[float, float]], dict[str, Any
         "pct_sign_seen_x": False, "pct_sign_seen_y": False, "rows_skipped": 0,
     }
     pts: list[tuple[float, float]] = []
+    ratio_y_names = {"ratio", "fraction", "retention_ratio", "retention_fraction"}
+
+    def _match_y_key(name: str) -> bool:
+        return _is_y_header(name) or name.strip().lower() in ratio_y_names
+
+    def _match_x_key(name: str) -> bool:
+        return (not _match_y_key(name)) and _is_x_header(name)
+
     if stripped[0] in "[{":
         data = json.loads(stripped)
-        rows = data.get("points", data) if isinstance(data, dict) else data
+        if isinstance(data, dict) and "points" not in data:
+            list_keys = [k for k, v in data.items() if isinstance(k, str) and isinstance(v, list)]
+            x_keys = [k for k in list_keys if _match_x_key(k)]
+            y_keys = [k for k in list_keys if _match_y_key(k)]
+            if len(x_keys) != 1 or len(y_keys) != 1 or x_keys[0] == y_keys[0]:
+                raise ValueError(
+                    "JSON retention object must contain {'points': [...]} or uniquely one x-axis list "
+                    "and one retention list."
+                )
+            xk, yk = x_keys[0], y_keys[0]
+            x_vals, y_vals = data[xk], data[yk]
+            if len(x_vals) != len(y_vals):
+                raise ValueError(
+                    f"JSON retention arrays '{xk}' (len={len(x_vals)}) and '{yk}' (len={len(y_vals)}) must have equal length."
+                )
+            meta["x_header"], meta["y_header"], meta["headers"] = xk, yk, [xk, yk]
+            for raw_x, raw_y in zip(x_vals, y_vals):
+                (x, xp), (y, yp) = _parse_num(raw_x), _parse_num(raw_y)
+                if x is None or y is None:
+                    meta["rows_skipped"] += 1
+                    continue
+                meta["pct_sign_seen_x"] |= xp
+                meta["pct_sign_seen_y"] |= yp
+                pts.append((x, y))
+            return pts, meta
+
+        rows = data.get("points") if isinstance(data, dict) else data
         if not isinstance(rows, list):
             raise ValueError("JSON retention input must be a list or {'points': [...]}.")
+        seen_x_keys: set[str] = set()
+        seen_y_keys: set[str] = set()
+        saw_dict = False
+        saw_pair = False
         for item in rows:
-            if isinstance(item, (list, tuple)) and len(item) >= 2:
+            if isinstance(item, (list, tuple)):
+                if saw_dict:
+                    raise ValueError("Mixed object and array rows in JSON retention input.")
+                if len(item) != 2:
+                    raise ValueError(f"Headerless JSON point array must have exactly 2 elements [x, y], got {len(item)}.")
+                saw_pair = True
                 (x, xp), (y, yp) = _parse_num(item[0]), _parse_num(item[1])
             elif isinstance(item, dict):
-                (x, xp) = _parse_num(item.get("x", item.get("time_s", item.get("pct"))))
-                (y, yp) = _parse_num(item.get("y", item.get("retention_pct", item.get("retention"))))
+                if saw_pair:
+                    raise ValueError("Mixed array and object rows in JSON retention input.")
+                saw_dict = True
+                xk_list = [k for k in item if isinstance(k, str) and _match_x_key(k)]
+                yk_list = [k for k in item if isinstance(k, str) and _match_y_key(k)]
+                if len(xk_list) > 1 or len(yk_list) > 1:
+                    raise ValueError(
+                        f"Conflicting JSON point keys (x={xk_list!r}, y={yk_list!r}); provide one x key and one retention key."
+                    )
+                if len(xk_list) != 1 or len(yk_list) != 1:
+                    meta["rows_skipped"] += 1
+                    continue
+                xk, yk = xk_list[0], yk_list[0]
+                seen_x_keys.add(xk)
+                seen_y_keys.add(yk)
+                (x, xp), (y, yp) = _parse_num(item[xk]), _parse_num(item[yk])
             else:
                 meta["rows_skipped"] += 1
                 continue
@@ -189,6 +246,18 @@ def parse_curve(raw_text: str) -> tuple[list[tuple[float, float]], dict[str, Any
             meta["pct_sign_seen_x"] |= xp
             meta["pct_sign_seen_y"] |= yp
             pts.append((x, y))
+        if len(seen_x_keys) > 1:
+            raise ValueError(f"Conflicting x-axis keys across JSON points: {sorted(seen_x_keys)!r}.")
+        if len(seen_y_keys) > 1:
+            raise ValueError(f"Conflicting retention keys across JSON points: {sorted(seen_y_keys)!r}.")
+        if saw_dict and (not seen_x_keys or not seen_y_keys):
+            raise ValueError("Ambiguous JSON point keys: could not identify time/position (x) and retention (y) keys.")
+        if seen_x_keys:
+            meta["x_header"] = next(iter(seen_x_keys))
+        if seen_y_keys:
+            meta["y_header"] = next(iter(seen_y_keys))
+        if meta["x_header"] or meta["y_header"]:
+            meta["headers"] = [h for h in (meta["x_header"], meta["y_header"]) if h]
         return pts, meta
 
     delim = ";" if (stripped[:4096].count(";") > stripped[:4096].count(",")) else ","
@@ -213,7 +282,12 @@ def parse_curve(raw_text: str) -> tuple[list[tuple[float, float]], dict[str, Any
     else:
         headers = [c.strip() for c in first]
         meta["headers"] = headers
-        x_idx, y_idx = _resolve_csv_columns(headers)
+        x_matches = [i for i, h in enumerate(headers) if _match_x_key(h)]
+        y_matches = [i for i, h in enumerate(headers) if _match_y_key(h)]
+        if len(x_matches) == 1 and len(y_matches) == 1 and x_matches[0] != y_matches[0]:
+            x_idx, y_idx = x_matches[0], y_matches[0]
+        else:
+            x_idx, y_idx = _resolve_csv_columns(headers)
         meta["x_header"] = headers[x_idx]
         meta["y_header"] = headers[y_idx]
         data_rows = raw_rows[1:]
@@ -269,29 +343,53 @@ def normalize_time(
     if dup_count:
         warnings.append(f"Resolved {dup_count} duplicate x-axis point(s) by keeping the last entry.")
 
-    x_hdr = str(meta.get("x_header") or "").lower()
-    if time_unit == "auto":
-        if meta.get("pct_sign_seen_x") or "percent" in x_hdr or "pct" in x_hdr or "%" in x_hdr:
+    x_hdr_raw = str(meta.get("x_header") or "").strip()
+    x_hdr = x_hdr_raw.lower()
+    x_toks = set(re.findall(r"[a-z0-9]+|%", x_hdr))
+    x_norm = re.sub(r"[^a-z0-9%]+", "_", x_hdr).strip("_")
+    hdr_pct = bool(x_hdr) and ("%" in x_toks or bool(x_toks & {"pct", "percent", "percentage"}) or x_norm.endswith(("_pct", "_percent")))
+    hdr_sec = bool(x_hdr) and (bool(x_toks & {"s", "sec", "secs", "second", "seconds"}) or x_norm.endswith(("_s", "_sec", "_secs", "_second", "_seconds")))
+    cell_pct = bool(meta.get("pct_sign_seen_x"))
+    header_unit = "percent" if (hdr_pct and not hdr_sec) else ("seconds" if (hdr_sec and not hdr_pct) else None)
+    max_x = max(p[0] for p in deduped)
+
+    # Precedence: CLI explicit > explicit CSV header / JSON key > warned inference (or exit 2 on ambiguity/conflict)
+    if time_unit != "auto":
+        resolved_unit = time_unit
+        if header_unit is not None and header_unit != resolved_unit:
+            warnings.append(f"CLI --time-unit {resolved_unit} overrides header/key '{x_hdr_raw}' ({header_unit}).")
+        if resolved_unit == "seconds" and cell_pct:
+            raise ValueError("Contradictory x-axis units: --time-unit seconds conflicts with '%' markers in x-axis values.")
+    else:
+        if hdr_pct and hdr_sec:
+            raise ValueError(f"Contradictory x-axis header/key '{x_hdr_raw}': specifies both seconds and percent.")
+        if header_unit == "seconds" and cell_pct:
+            raise ValueError(f"Contradictory x-axis units: header/key '{x_hdr_raw}' indicates seconds, but values contain '%'.")
+        if header_unit is not None:
+            resolved_unit = header_unit
+        elif cell_pct:
             resolved_unit = "percent"
-        elif "sec" in x_hdr or "time" in x_hdr or "elapsed" in x_hdr:
-            resolved_unit = "seconds"
-        elif max(p[0] for p in deduped) <= 100.5 and duration_s is not None and abs(max(p[0] for p in deduped) - 100.0) <= 2.0 and duration_s != 100.0:
+        elif abs(max_x - 100.0) <= 2.0 and duration_s is None:
+            raise ValueError(
+                "Ambiguous x-axis unit: unitless x-axis ends near 100 without --duration. "
+                "Pass --time-unit seconds|percent explicitly."
+            )
+        elif max_x <= 100.5 and duration_s is not None and abs(max_x - 100.0) <= 2.0 and abs(duration_s - 100.0) > 2.0:
             resolved_unit = "percent"
             warnings.append("Inferred x-axis as percent (0-100%) from max~100 and explicit duration; pass --time-unit to override.")
         else:
             resolved_unit = "seconds"
-    else:
-        resolved_unit = time_unit
+            warnings.append("Inferred x-axis as seconds (no explicit unit in header/key); pass --time-unit seconds|percent to lock.")
 
     if resolved_unit == "percent":
-        if max(p[0] for p in deduped) > 100.5:
+        if max_x > 100.5:
             raise ValueError("Percent x-axis exceeds 100%.")
         if duration_s is None:
             raise ValueError("duration_s is required when x-axis is normalized percentage.")
         converted = [(x / 100.0 * duration_s, y) for x, y in deduped]
     else:
-        if duration_s is not None and max(p[0] for p in deduped) > duration_s * 1.05 + 1.0:
-            raise ValueError(f"Observed timestamp {max(p[0] for p in deduped)}s exceeds supplied duration_s ({duration_s}s).")
+        if duration_s is not None and max_x > duration_s * 1.05 + 1.0:
+            raise ValueError(f"Observed timestamp {max_x}s exceeds supplied duration_s ({duration_s}s).")
         converted = deduped
 
     spacings = [converted[i][0] - converted[i - 1][0] for i in range(1, len(converted)) if converted[i][0] > converted[i - 1][0]]
@@ -319,23 +417,58 @@ def normalize_rate(
 
     max_y = max(ys)
     warnings: list[str] = []
-    if rate_unit == "auto":
-        if meta.get("pct_sign_seen_y"):
-            resolved = "percent"
-        elif max_y <= 2.5 and any(0 < y <= 1.05 for y in ys) and max_y <= 1.5:
-            # Ambiguous if values sit cleanly in 0..1.5 without % signs -> explicit check
-            if max_y <= 1.05 and ys[0] <= 1.05 and ys[0] > 0.2:
-                resolved = "ratio"
-                warnings.append("Converted 0..1 ratio values to percentage (x100); pass --rate-unit percent|ratio to lock.")
-            else:
-                raise ValueError(
-                    "Ambiguous retention y-axis unit (values <= 2.5 without '%' sign). "
-                    "Pass --rate-unit percent or --rate-unit ratio explicitly."
-                )
-        else:
-            resolved = "percent"
-    else:
+    y_hdr_raw = str(meta.get("y_header") or "").strip()
+    y_hdr = y_hdr_raw.lower()
+    y_toks = set(re.findall(r"[a-z0-9]+|%", y_hdr))
+    y_norm = re.sub(r"[^a-z0-9%]+", "_", y_hdr).strip("_")
+    hdr_pct = bool(y_hdr) and ("%" in y_toks or bool(y_toks & {"pct", "percent", "percentage"}) or y_norm.endswith(("_pct", "_percent")))
+    hdr_ratio = bool(y_hdr) and (bool(y_toks & {"ratio", "fraction", "frac", "decimal", "proportion"}) or y_norm.endswith(("_ratio", "_fraction")))
+    cell_pct = bool(meta.get("pct_sign_seen_y"))
+    header_unit = "percent" if (hdr_pct and not hdr_ratio) else ("ratio" if (hdr_ratio and not hdr_pct) else None)
+
+    # Precedence: CLI explicit > explicit CSV header / JSON key > warned inference (or exit 2 on ambiguity/conflict)
+    if rate_unit != "auto":
         resolved = rate_unit
+        if header_unit is not None and header_unit != resolved:
+            warnings.append(f"CLI --rate-unit {resolved} overrides header/key '{y_hdr_raw}' ({header_unit}).")
+        if resolved == "ratio" and cell_pct:
+            raise ValueError("Contradictory y-axis units: --rate-unit ratio conflicts with '%' markers in retention values.")
+        if resolved == "ratio" and max_y > 10.0:
+            raise ValueError(f"Contradictory y-axis values: max retention {max_y} exceeds plausible ratio scale (<= 10.0).")
+    else:
+        if hdr_pct and hdr_ratio:
+            raise ValueError(f"Contradictory retention header/key '{y_hdr_raw}': specifies both percent and ratio.")
+        if header_unit == "ratio" and cell_pct:
+            raise ValueError(f"Contradictory y-axis units: header/key '{y_hdr_raw}' indicates ratio, but values contain '%'.")
+        if header_unit == "percent":
+            resolved = "percent"
+            if 0 < max_y <= 1.5 and not cell_pct:
+                warnings.append(
+                    f"Header/key '{y_hdr_raw}' specifies percent; kept small values (max={round(max_y, 4)}%) "
+                    "as percent without x100 scaling (pass --rate-unit ratio if values are 0..1 ratios)."
+                )
+        elif header_unit == "ratio":
+            if max_y > 10.0:
+                raise ValueError(
+                    f"Contradictory y-axis values: header/key '{y_hdr_raw}' indicates ratio, but max value {max_y} suggests percent."
+                )
+            resolved = "ratio"
+        elif cell_pct:
+            resolved = "percent"
+        elif max_y > 2.5:
+            resolved = "percent"
+            warnings.append("Inferred retention y-axis as percent from numeric scale; pass --rate-unit percent|ratio to lock.")
+        elif max_y == 0.0:
+            resolved = "percent"
+            warnings.append("Inferred retention y-axis as percent (all values are 0); pass --rate-unit percent|ratio to lock.")
+        elif max_y <= 1.05 and 0.2 < ys[0] <= 1.05:
+            resolved = "ratio"
+            warnings.append("Inferred 0..1 ratio values and scaled to percentage (x100); pass --rate-unit percent|ratio to lock.")
+        else:
+            raise ValueError(
+                "Ambiguous retention y-axis unit (values <= 2.5 without explicit header/key or '%' sign). "
+                "Pass --rate-unit percent or --rate-unit ratio explicitly."
+            )
 
     converted = [(x, y * 100.0) for x, y in points] if resolved == "ratio" else points
     if any(y > 100.0 for _, y in converted):
