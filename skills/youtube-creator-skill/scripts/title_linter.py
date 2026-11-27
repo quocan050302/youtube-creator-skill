@@ -287,19 +287,24 @@ def _read_bounded_text(path_or_dash: str, max_bytes: int) -> str:
     return raw.decode("utf-8-sig", errors="replace")
 
 
-def _extract_titles(raw_text: str) -> list[str]:
+def _extract_titles(raw_text: str, is_json_file: bool = False) -> list[str]:
     stripped = raw_text.strip()
     if not stripped:
         return []
-    if stripped.startswith("[") or stripped.startswith("{"):
+    if is_json_file or stripped.startswith("[") or stripped.startswith("{"):
         try:
             data = json.loads(stripped)
+        except json.JSONDecodeError as exc:
+            if is_json_file:
+                raise ValueError(f"Malformed JSON title input: {exc}") from exc
+            data = None
+        if data is not None:
             if isinstance(data, list):
                 return [str(x) if isinstance(x, str) else str(x.get("title", "")) for x in data]
             if isinstance(data, dict) and isinstance(data.get("titles"), list):
                 return [str(x) if isinstance(x, str) else str(x.get("title", "")) for x in data["titles"]]
-        except json.JSONDecodeError:
-            pass
+            if is_json_file:
+                raise ValueError("JSON title input must be a list or an object with a 'titles' list.")
     return [line for line in raw_text.splitlines() if line.strip()]
 
 
@@ -322,7 +327,8 @@ def main(argv: list[str] | None = None) -> int:
     titles = list(args.title)
     try:
         if args.input:
-            titles.extend(_extract_titles(_read_bounded_text(args.input, args.max_bytes)))
+            is_jf = args.input != "-" and args.input.lower().endswith(".json")
+            titles.extend(_extract_titles(_read_bounded_text(args.input, args.max_bytes), is_json_file=is_jf))
         elif not titles and not sys.stdin.isatty():
             titles.extend(_extract_titles(_read_bounded_text("-", args.max_bytes)))
         if not titles:

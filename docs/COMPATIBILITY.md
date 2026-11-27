@@ -12,7 +12,7 @@ This matrix explicitly separates **officially documented paths (`DOC_ONLY`)** fr
 
 | Client | Version / Host OS | Install Method | Native Discovery | Text Mode | File R/W | Python Code | Web / Vision | Evidence / Notes | Status | Date |
 |---|---|---|---|---|---|---|---|---|---|---|
-| **Google Antigravity** | Desktop Windows 11 (host runtime) | Project `.agents/skills/youtube-creator-skill/` or `~/.gemini/config/skills/` | Verified (spec + fresh subagent load) | PASS | PASS | PASS (Python 3.12.10) | Web search / session-dependent | Fresh-context subagent runs + isolated CLI tests executed | **PASS** | 2026-11-27 |
+| **Google Antigravity** | Windows 11 (Python 3.12.10) & macOS 14.4.1 ARM64 (Python 3.13.0) | Project `.agents/skills/youtube-creator-skill/` or `~/.gemini/config/skills/` | Verified (spec + fresh subagent load) | PASS | PASS | PASS | Web search / session-dependent | Fresh-context isolated customer ZIP runs + isolated CLI tests executed | **PASS** | 2026-11-27 |
 | **OpenAI Codex** | Not installed on build host | Project `.agents/skills/youtube-creator-skill/` or `~/.agents/skills/` | Verified against official docs | NOT_RUN | NOT_RUN | NOT_RUN | NOT_RUN | `codex` CLI unavailable on host (`NOT_FOUND`); path matches official docs | **DOC_ONLY / NOT_RUN** | 2026-11-27 |
 | **Claude Code** | Not installed on build host | Project `.claude/skills/youtube-creator-skill/` or `~/.claude/skills/` | Verified against official docs | NOT_RUN | NOT_RUN | NOT_RUN | NOT_RUN | `claude` CLI unavailable on host (`NOT_FOUND`); path matches official docs | **DOC_ONLY / NOT_RUN** | 2026-11-27 |
 
@@ -33,4 +33,4 @@ This matrix explicitly separates **officially documented paths (`DOC_ONLY`)** fr
 
 ## Release Gate Transparency
 
-Because external native clients (`codex`, `claude`), 3 distinct consumer web chats, and live Agensi upload were not executed on this single Windows host, this release is honestly versioned **`v1.0.0-rc.1`** (Release Candidate) rather than certified multi-client stable `v1.0.0`.
+Because external native clients (`codex`, `claude`), 3 distinct consumer web chats, and live Agensi upload were not executed live, this release is honestly versioned **`v1.0.0-rc.2`** (Release Candidate) rather than certified multi-client stable `v1.0.0`.

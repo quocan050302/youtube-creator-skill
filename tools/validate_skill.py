@@ -17,6 +17,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_SKILL_DIR = REPO_ROOT / "skills" / "youtube-creator-skill"
 NAME_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 REF_LINK_RE = re.compile(r"`((?:references|scripts|assets)/[A-Za-z0-9_.\-/]+)`")
+BARE_REF_MD_RE = re.compile(r"`([a-z0-9\-]+\.md)`")
 
 
 def parse_frontmatter(text: str) -> tuple[dict[str, Any], str, list[str]]:
@@ -109,9 +110,13 @@ def validate_skill_dir(skill_dir: Path) -> dict[str, Any]:
     if approx_tokens > 5000:
         errors.append(f"SKILL.md exceeds ~5000 token ceiling (~{approx_tokens} tokens).")
 
-    # Verify all referenced files exist
-    referenced = sorted(set(REF_LINK_RE.findall(body)))
-    for rel in referenced:
+    # Verify all referenced files exist (both explicit paths and bare lowercase .md refs in SKILL.md routing table)
+    referenced = set(REF_LINK_RE.findall(body))
+    for bare in BARE_REF_MD_RE.findall(body):
+        if bare not in {"skill.md", "readme.md"}:
+            referenced.add(f"references/{bare}")
+    referenced_sorted = sorted(referenced)
+    for rel in referenced_sorted:
         if not (skill_dir / rel).is_file():
             errors.append(f"Broken reference in SKILL.md: {rel}")
 

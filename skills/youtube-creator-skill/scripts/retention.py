@@ -171,12 +171,14 @@ def normalize_time(
         raise ValueError("Timestamps/positions must be finite and >= 0.")
 
     warnings: list[str] = []
+    skipped = int(meta.get("rows_skipped", 0))
+    if skipped > 0:
+        warnings.append(f"Skipped {skipped} invalid/non-numeric/NaN row(s) as missing (never coerced to 0).")
     unsorted = any(xs[i] < xs[i - 1] for i in range(1, len(xs)))
     if unsorted:
         warnings.append("Input x-axis was unsorted; points were sorted ascending by position.")
     ordered = sorted(points, key=lambda p: p[0])
 
-    # Deduplicate identical x values (policy: keep last observed value at duplicate timestamp)
     deduped: list[tuple[float, float]] = []
     dup_count = 0
     for x, y in ordered:
@@ -219,6 +221,7 @@ def normalize_time(
         "duration_s": duration_s if duration_s is not None else round(converted[-1][0], 3),
         "observed_range_s": [round(converted[0][0], 3), round(converted[-1][0], 3)],
         "points_count": len(converted),
+        "dropped_invalid_rows": skipped,
         "median_step_s": round(statistics.median(spacings), 3) if spacings else None,
         "max_step_s": round(max(spacings), 3) if spacings else None,
         "warnings": warnings,
@@ -418,6 +421,7 @@ def summarize(
             "max_retention_pct": round(max(y for _, y in points), 2),
             "min_retention_pct": round(min(y for _, y in points), 2),
             "has_rewatch_above_100pct": any(y > 100.0 for _, y in points),
+            "dropped_invalid_rows": axis_info.get("dropped_invalid_rows", 0),
         },
         "early_window_change": early,
         "cliffs_and_slide": cliff_info,

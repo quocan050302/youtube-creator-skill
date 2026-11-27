@@ -185,7 +185,18 @@ def score_hook(hook_text: str, pov: str = "direct", title: str | None = None) ->
         r_align = 1 if not intro_hit else 0
         reasons.append("No title supplied; promise_alignment requires manual verification against title/first frame.")
 
+    est_sec_150 = round(word_count / 2.5, 2)
+    est_sec_180 = round(word_count / 3.0, 2)
+    fits_3s_first_line = word_count <= 9
+    fits_3s_brisk = word_count <= 10
+
     r_speak = 2 if (brevity_100 >= 80 and not intro_hit and len(filler_hits) <= 1) else (1 if brevity_100 >= 50 else 0)
+    if pov == "narrative" and word_count > 10:
+        r_speak = min(r_speak, 1)
+        reasons.append(
+            f"Opening is {word_count} words (~{est_sec_180:.1f}-{est_sec_150:.1f}s at 150-180 WPM); "
+            "exceeds 0-3s Shorts first-line target (<=9-10 words). Tighten or label as 0-5s+ setup."
+        )
     if filler_hits:
         reasons.append(f"Filler words present: {', '.join(filler_hits)}")
 
@@ -203,6 +214,10 @@ def score_hook(hook_text: str, pov: str = "direct", title: str | None = None) ->
     return {
         "hook": t,
         "word_count": word_count,
+        "est_spoken_sec_150_wpm": est_sec_150,
+        "est_spoken_sec_180_wpm": est_sec_180,
+        "fits_3s_first_line": fits_3s_first_line,
+        "fits_3s_brisk": fits_3s_brisk,
         "pov_mode": pov,
         "formula_id": formula_id,
         "formula_name": formula_name,
@@ -271,19 +286,24 @@ def _read_bounded_text(path_or_dash: str, max_bytes: int) -> str:
     return raw.decode("utf-8-sig", errors="replace")
 
 
-def _extract_hooks(raw_text: str) -> list[str]:
+def _extract_hooks(raw_text: str, is_json_file: bool = False) -> list[str]:
     stripped = raw_text.strip()
     if not stripped:
         return []
-    if stripped.startswith("[") or stripped.startswith("{"):
+    if is_json_file or stripped.startswith("[") or stripped.startswith("{"):
         try:
             data = json.loads(stripped)
+        except json.JSONDecodeError as exc:
+            if is_json_file:
+                raise ValueError(f"Malformed JSON hook input: {exc}") from exc
+            data = None
+        if data is not None:
             if isinstance(data, list):
                 return [str(x) if isinstance(x, str) else str(x.get("hook", "")) for x in data]
             if isinstance(data, dict) and isinstance(data.get("hooks"), list):
                 return [str(x) if isinstance(x, str) else str(x.get("hook", "")) for x in data["hooks"]]
-        except json.JSONDecodeError:
-            pass
+            if is_json_file:
+                raise ValueError("JSON hook input must be a list or an object with a 'hooks' list.")
     return [line for line in raw_text.splitlines() if line.strip()]
 
 
@@ -308,7 +328,8 @@ def main(argv: list[str] | None = None) -> int:
     hooks: list[str] = list(args.hook)
     try:
         if args.input:
-            hooks.extend(_extract_hooks(_read_bounded_text(args.input, args.max_bytes)))
+            is_jf = args.input != "-" and args.input.lower().endswith(".json")
+            hooks.extend(_extract_hooks(_read_bounded_text(args.input, args.max_bytes), is_json_file=is_jf))
         elif not hooks and not sys.stdin.isatty():
             hooks.extend(_extract_hooks(_read_bounded_text("-", args.max_bytes)))
         if not hooks:

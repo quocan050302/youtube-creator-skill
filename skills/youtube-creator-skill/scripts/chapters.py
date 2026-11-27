@@ -297,6 +297,8 @@ def main(argv: list[str] | None = None) -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
     print(json.dumps(payload, indent=2, ensure_ascii=False))
+    if args.validate and not payload.get("valid", False):
+        return 1
     return 0
 
 

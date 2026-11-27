@@ -44,7 +44,7 @@ jobs:
         run: python tools/run_evals.py
 
       - name: Build and verify byte-for-byte reproducible release archives
-        run: python tools/build_release.py --version 1.0.0-rc.1 --verify
+        run: python tools/build_release.py --version 1.0.0-rc.2 --verify
 
       - name: Upload checksum manifest (Ubuntu 3.12)
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'

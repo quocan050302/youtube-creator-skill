@@ -6,6 +6,20 @@ will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0-rc.2] - 2026-11-27
+
+**Status:** Release Candidate (remediation pass from YT-01.T1 independent acceptance test; external multi-client certification and owner publication approval remain pending).
+
+### Fixed & Hardened
+- **Release Workflow Security & Reliability (`.github/workflows/release.yml`):** Eliminated direct `${{ inputs.version }}` bash shell interpolation, added strict semver validation, pinned `target_sha` verification, stable external-gate guard against unverified non-RC tags, and added explicit `--repo` + `--target` flags in `publish-github-release`.
+- **0–3s Shorts Spoken Hook Gate (`SKILL.md`, `references/hook-engine.md`, `scripts/hookscore.py`, `examples/01-science-short-copper-magnet/`):** Added explicit `est_spoken_sec_150_wpm`, `est_spoken_sec_180_wpm`, and `fits_3s_first_line` checks in `hookscore.py` with rubric capping on >10-word Shorts openers; updated shipped Demo 01 first spoken line to an authentic 8-word `0–3s` opener.
+- **Creator-Facing Copy Cleanliness (`SKILL.md`, `references/output-contract.md`, `references/quality-gates.md`):** Restricted internal QA/schema enums and editing reminders from leaking into `Recommended Action` or pasteable upload/prompt blocks, and enforced fictional-dataset framing hygiene.
+- **Standalone Script Hardening:**
+  - `scripts/retention.py`: Exposed `dropped_invalid_rows` and emitted explicit warnings whenever `NaN`/non-numeric rows are skipped as missing.
+  - `scripts/hookscore.py` & `scripts/title_linter.py`: Fail closed (`exit 2`) on malformed `.json` files instead of silently scoring broken JSON text.
+  - `scripts/validate_output.py` & `scripts/chapters.py --validate`: Return exit code `1` when `"valid": false` (exit `0` only on valid input, exit `2` on IO/syntax errors).
+- **Universal Prompt & Spec Validator Parity:** Expanded `tools/build_universal_prompt.py` to bundle all 21 canonical references with an automated guard against dangling `"section below"` mentions; updated `tools/validate_skill.py` to check bare `.md` routing-table links; added `python3` macOS/Linux commands to `docs/INSTALL.md` and synced test paths in `docs/RELEASE_CHECKLIST.md`.
+
 ## [1.0.0-rc.1] - 2026-11-27
 
 **Status:** Release Candidate (pending external multi-client native certification

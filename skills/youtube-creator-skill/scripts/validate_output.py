@@ -362,7 +362,7 @@ def main(argv: list[str] | None = None) -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
     print(json.dumps(payload, indent=2, ensure_ascii=False))
-    return 0
+    return 0 if payload.get("valid", False) else 1
 
 
 if __name__ == "__main__":

@@ -123,7 +123,7 @@ def write_report(report: dict[str, Any], out_json: Path) -> None:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Run bounded deterministic QA suite (fail closed).")
     parser.add_argument("--repo-root", default=str(REPO_ROOT))
-    parser.add_argument("--version", default="1.0.0-rc.1")
+    parser.add_argument("--version", default="1.0.0-rc.2")
     parser.add_argument("--run-dir", default=None, help="Directory to store qa-results.json and logs/.")
     args = parser.parse_args(argv)
 

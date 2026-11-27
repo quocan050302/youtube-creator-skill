@@ -18,17 +18,25 @@ OUT_PATH = REPO_ROOT / "universal" / "UNIVERSAL_PROMPT.md"
 ALLOWLISTED_SECTIONS = [
     ("SEC-01", "Capability Boundaries & Prompt-Injection Safety", "references/capability-matrix.md"),
     ("SEC-02", "Master Router & Intent Handling", "references/master-router.md"),
-    ("SEC-03", "Research, Fact Verification & Cohort Competitor Analysis", "references/research-engine.md"),
-    ("SEC-04", "Competitor Cohort Rules (No Median Leakage)", "references/competitor-research.md"),
-    ("SEC-05", "TT-01 Title Curiosity Gate", "references/title-engine.md"),
-    ("SEC-06", "Hook Lab & 5-Dimension Rubric", "references/hook-engine.md"),
-    ("SEC-07", "KH-01 Storytelling, 10 Niche Modes & WPM Timing", "references/storytelling-engine.md"),
-    ("SEC-08", "Visual Packaging, First Frame & Storyboard Rules", "references/visual-packaging.md"),
-    ("SEC-09", "Analytics Truth Model & Retention Curve Diagnosis", "references/analytics-diagnosis.md"),
-    ("SEC-10", "Channel Audit, Content Planning & Learning Loop", "references/channel-audit.md"),
-    ("SEC-11", "Capacity-Aware Content Calendars", "references/planning-engine.md"),
-    ("SEC-12", "Repurpose, Edit Review, SEO, Comments & Chapters", "references/seo-comments-chapters.md"),
-    ("SEC-13", "Output Contract & Quality Hard-Fail Gates", "references/quality-gates.md"),
+    ("SEC-03", "Portable Creator Profile & Memory Rules", "references/creator-profile.md"),
+    ("SEC-04", "Research Engine & Source Discipline", "references/research-engine.md"),
+    ("SEC-05", "Fact Verification & Evidence Boundaries", "references/fact-verification.md"),
+    ("SEC-06", "Competitor Cohort Rules (No Median Leakage)", "references/competitor-research.md"),
+    ("SEC-07", "Topic Strategy & Angle Selection", "references/topic-strategy.md"),
+    ("SEC-08", "Niche Profiles & Audience Calibration", "references/niche-profiles.md"),
+    ("SEC-09", "TT-01 Title Curiosity Gate", "references/title-engine.md"),
+    ("SEC-10", "Hook Lab & 5-Dimension Rubric", "references/hook-engine.md"),
+    ("SEC-11", "KH-01 Storytelling, 10 Niche Modes & WPM Timing", "references/storytelling-engine.md"),
+    ("SEC-12", "Humor, Deadpan Contrast & Analogy Guardrails", "references/humor-engine.md"),
+    ("SEC-13", "Visual Packaging, First Frame & Storyboard Rules", "references/visual-packaging.md"),
+    ("SEC-14", "Editing Intelligence & Transcript EDL Rules", "references/editing-intelligence.md"),
+    ("SEC-15", "Analytics Truth Model & Retention Curve Diagnosis", "references/analytics-diagnosis.md"),
+    ("SEC-16", "Channel Audit & Continuous Learning Loop", "references/channel-audit.md"),
+    ("SEC-17", "Capacity-Aware Content Calendars", "references/planning-engine.md"),
+    ("SEC-18", "Long-to-Short Repurpose Engine", "references/repurpose-engine.md"),
+    ("SEC-19", "SEO, Comment Triage & YouTube Chapters", "references/seo-comments-chapters.md"),
+    ("SEC-20", "Creator Action Pack & Output Contract", "references/output-contract.md"),
+    ("SEC-21", "Pre-Delivery Quality Hard-Fail Gates", "references/quality-gates.md"),
 ]
 
 REL_REF_RE = re.compile(r"`(?:references|scripts|assets)/[A-Za-z0-9_.\-/]+`")
@@ -36,7 +44,7 @@ REL_REF_RE = re.compile(r"`(?:references|scripts|assets)/[A-Za-z0-9_.\-/]+`")
 
 def _strip_frontmatter(text: str) -> tuple[str, str]:
     lines = text.splitlines()
-    version = "1.0.0-rc.1"
+    version = "1.0.0-rc.2"
     if lines and lines[0].strip() == "---":
         for i in range(1, len(lines)):
             if lines[i].strip().startswith("version:"):
@@ -150,6 +158,11 @@ def build_universal_prompt(repo_root: Path = REPO_ROOT) -> tuple[str, dict[str, 
     unresolved = REL_REF_RE.findall(output)
     if unresolved:
         raise RuntimeError(f"Unresolved local skill links found in generated universal prompt: {unresolved}")
+    included_slugs = {Path(rel).stem.replace("-", " ") for _, _, rel in ALLOWLISTED_SECTIONS}
+    mentioned_below = set(re.findall(r"the ([a-z ]+) section below", output))
+    dangling_sections = sorted(m for m in mentioned_below if m not in included_slugs)
+    if dangling_sections:
+        raise RuntimeError(f"Dangling 'section below' references to omitted modules: {dangling_sections}")
 
     meta = {
         "version": version,

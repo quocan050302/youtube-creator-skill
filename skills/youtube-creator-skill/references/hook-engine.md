@@ -3,9 +3,12 @@
 A hook earns the next 20 seconds by confirming the click/scroll promise and creating an open loop the viewer wants closed — never by announcing who you are or summarizing the ending.
 
 ## 1. Format Opening Standards
-- **YouTube Shorts (0–3s, up to 5s only if actively earned):**
+- **YouTube Shorts — Strict 0–3s Spoken First-Line Gate:**
   - Open directly on an observable action, paradox, visual contrast, or immediate stake.
   - Zero channel intro, zero *"Hey guys"*, zero *"In this video"*.
+  - **Word-count honesty rule:** At conversational-to-brisk pace (`150–180 WPM`, or `2.5–3.0 words/s`), **0–3s holds at most 7–9 spoken words** (up to 10 words at brisk ~200 WPM; remember spoken numbers like `$2,000` count as 3 spoken words).
+  - **Never market an 11–20+ word spoken line as `0–3s`.** Either tighten the first spoken line to `<= 9` spoken words so the tension lands inside 0–3s, OR label a longer multi-clause setup honestly as `0–5s` / `0–6s` setup while letting the `0.0s` visual carry the 0–1s scroll-stop.
+  - Never attach `ESTIMATED_WPM` runtime ranges to unscripted bullet outlines — compute WPM timing only on actual drafted spoken words.
   - Pair the **first spoken sentence** with a **complementary first frame**: the visual shows the concrete anomaly while the voice states the tension (avoid narrating what is already obvious unless clarifying a mechanism).
 - **Long-Form (~15–30s, tailored to video length and genre):**
   - Confirm the title's exact promise in the opening line.

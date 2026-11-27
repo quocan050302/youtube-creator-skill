@@ -61,52 +61,52 @@
     "promise": "Explain why non-magnetic copper slows a falling magnet via eddy currents and Lenz's law."
   },
   "hook": {
-    "selected": "Touch a magnet to a copper pipe—nothing sticks. Drop it inside, and why does it crawl down in slow motion?",
+    "selected": "Copper isn't magnetic—why does it slow falling magnets?",
     "alternatives": [
-      "Copper isn't magnetic, yet drop a magnet down a copper pipe and gravity seems to slow to a crawl."
+      "Drop a magnet through copper—gravity slows down."
     ],
-    "heuristic_basis": "scripts/hookscore.py --pov narrative -> rubric_total 9/10, formula The Question (lexical heuristic only)"
+    "heuristic_basis": "scripts/hookscore.py --pov narrative -> 9 spoken words, fits_3s_first_line=true, formula The Question (lexical heuristic only)"
   },
   "first_frame": {
     "concept": "9:16 vertical macro tabletop shot showing silver neodymium magnet mid-descent at the top of an upright bare copper pipe over dark matte desk with steel bolt below.",
     "aspect_ratio": "9:16"
   },
   "script": {
-    "text": "Touch a magnet to a copper pipe—nothing sticks. Drop it inside, and why does it crawl down in slow motion? Drop an unmagnetized steel bolt the same size, and it hits the table instantly. Copper isn't ferromagnetic, so nothing pulls on a still magnet. The brake only appears once it moves. As the falling magnet's field sweeps down the conductive copper, it induces swirling electric loops called eddy currents. By Lenz's law, those currents generate an opposing magnetic field that pushes back against the fall. Think of dragging a paddle through water—faster push, stronger pushback—except here there's no fluid, just electromagnetism. Roller coasters use this exact contactless braking to slow cars with zero brake pads wearing out.",
-    "word_count": 120,
+    "text": "Copper isn't magnetic—why does it slow falling magnets? Tap it outside the pipe—nothing sticks. Drop an unmagnetized steel bolt the same size inside, and it hits the table instantly. Copper isn't ferromagnetic, so nothing pulls on a still magnet. The brake only appears once it moves. As the falling magnet's field sweeps down the conductive copper, it induces swirling electric loops called eddy currents. By Lenz's law, those currents push back. Think of dragging a paddle through water—faster push, stronger pushback—except here there's no fluid, just electromagnetism. Roller coasters use this exact contactless braking to slow cars with zero brake pads wearing out.",
+    "word_count": 107,
     "wpm_basis": 185,
-    "duration_estimate_s": 42.0,
+    "duration_estimate_s": 37.5,
     "timing_basis": "ESTIMATED_WPM"
   },
   "storyboard": [
     {
       "id": "B01",
       "start_s": 0.0,
-      "end_s": 6.0,
+      "end_s": 3.0,
       "timing_basis": "ESTIMATED_WPM",
-      "voice": "Touch a magnet to a copper pipe—nothing sticks. Drop it inside, and why does it crawl down in slow motion?",
-      "visual": "Hand taps magnet on outside of upright copper pipe (slides off), then drops magnet into pipe showing slow descent.",
+      "voice": "Copper isn't magnetic—why does it slow falling magnets?",
+      "visual": "Tight vertical macro: silver neodymium magnet glides in slow motion down inside an upright bare copper pipe.",
       "overlay": "INVISIBLE BRAKE (0-2.5s only)",
-      "audio": "Crisp metallic tap then brief silence beat during drop",
+      "audio": "Brief quiet resonance during slow descent",
       "evidence_ids": ["E01"]
     },
     {
       "id": "B02",
-      "start_s": 6.0,
-      "end_s": 12.0,
+      "start_s": 3.0,
+      "end_s": 10.0,
       "timing_basis": "ESTIMATED_WPM",
-      "voice": "Drop an unmagnetized steel bolt the same size, and it hits the table instantly.",
-      "visual": "Side-by-side control drop: steel bolt falls straight through copper pipe onto matte dark table.",
+      "voice": "Tap it outside the pipe—nothing sticks. Drop an unmagnetized steel bolt the same size inside, and it hits the table instantly.",
+      "visual": "Hand taps magnet on outside of copper pipe (slides off), then drops unmagnetized steel bolt straight through onto matte dark table.",
       "overlay": "STEEL BOLT vs MAGNET",
-      "audio": "Sharp metallic clink on impact",
+      "audio": "Crisp tap then sharp metallic clink on impact",
       "evidence_ids": ["E01"]
     },
     {
       "id": "B03",
-      "start_s": 12.0,
-      "end_s": 26.0,
+      "start_s": 10.0,
+      "end_s": 23.5,
       "timing_basis": "ESTIMATED_WPM",
-      "voice": "Copper isn't ferromagnetic... By Lenz's law, those currents generate an opposing magnetic field that pushes back against the fall.",
+      "voice": "Copper isn't ferromagnetic, so nothing pulls on a still magnet... By Lenz's law, those currents push back.",
       "visual": "Clean 2D cutaway overlay: downward magnet arrow, circular current rings in copper wall, upward opposing field arrow.",
       "overlay": "EDDY CURRENTS -> LENZ'S LAW",
       "audio": "Subtle low hum rising with downward motion",
@@ -114,8 +114,8 @@
     },
     {
       "id": "B04",
-      "start_s": 26.0,
-      "end_s": 34.0,
+      "start_s": 23.5,
+      "end_s": 31.0,
       "timing_basis": "ESTIMATED_WPM",
       "voice": "Think of dragging a paddle through water—faster push, stronger pushback—except here there's no fluid, just electromagnetism.",
       "visual": "Minimal 2D paddle-in-water drag graphic crossfading back to live magnet exiting bottom of copper pipe.",
@@ -125,8 +125,8 @@
     },
     {
       "id": "B05",
-      "start_s": 34.0,
-      "end_s": 42.0,
+      "start_s": 31.0,
+      "end_s": 37.5,
       "timing_basis": "ESTIMATED_WPM",
       "voice": "Roller coasters use this exact contactless braking to slow cars with zero brake pads wearing out.",
       "visual": "Roller-coaster metal fin passing smoothly between magnetic brake calipers.",

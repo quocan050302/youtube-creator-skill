@@ -81,6 +81,11 @@ Agensi delivers skills to connected agents via its MCP workflow rather than dire
 Core text workflows need **no Python**. To run the 7 optional deterministic scripts in `scripts/`, verify Python 3.10+:
 
 ```bash
+# macOS / Linux (use python3 if `python` is not aliased):
+python3 --version
+python3 ".agents/skills/youtube-creator-skill/scripts/hookscore.py" --help
+
+# Windows:
 python --version
 python ".agents/skills/youtube-creator-skill/scripts/hookscore.py" --help
 ```
