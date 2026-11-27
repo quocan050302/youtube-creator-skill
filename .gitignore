@@ -1,0 +1,35 @@
+# Run artifacts, scratch, and local build outputs
+runs/
+dist/
+.cache/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Python virtual environments & bytecode
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Secrets & local environment files
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Creator personal workspaces (never commit private channel data)
+creator-workspace/
+creator-output/
+
+# OS & editor junk
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*.swo
+.vscode/
+.idea/
