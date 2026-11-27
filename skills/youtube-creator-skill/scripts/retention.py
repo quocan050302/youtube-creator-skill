@@ -1,0 +1,699 @@
+#!/usr/bin/env python3
+# SPDX-License-Identifier: MIT
+# Adapted from: https://github.com/jakeschincariol/youtube-agent-skill
+#   Pinned commit: a2feb2104981a375ffd4f87ee04f4f5344ac43c6
+#   Source path:   skills/yt-retention/retention.py
+#   Upstream Copyright (c) 2026 Jake Schincariol
+# Modifications Copyright (c) 2026 quocan050302:
+#   - Zero sibling imports (built-in SRT/VTT/Whisper JSON parser for isolated execution)
+#   - Explicit Shorts vs Long early windows; rejected universal 30s/25% folklore
+#   - Percentage-point (pp) deltas & pp/s slopes; valid >100% rewatch/loop spikes preserved
+#   - Strict axis/unit validation, unsorted/duplicate handling, non-causal transcript alignment
+"""Standalone YouTube audience-retention curve analyzer (JSON stdout)."""
+from __future__ import annotations
+
+import argparse
+import csv
+import io
+import json
+import math
+import re
+import statistics
+import sys
+from pathlib import Path
+from typing import Any
+
+MAX_INPUT_BYTES = 10 * 1024 * 1024
+LIMITATION_NOTE = (
+    "Retention curves show WHERE viewers left or rewatched, not WHY. "
+    "Aligned transcript lines are possible contributors — never proven causes — "
+    "and cannot separate script issues from editing or audio issues without media inspection."
+)
+
+
+def _parse_num(raw: Any) -> tuple[float | None, bool]:
+    if raw is None or isinstance(raw, bool):
+        return None, False
+    if isinstance(raw, (int, float)):
+        f = float(raw)
+        return (f, False) if math.isfinite(f) else (None, False)
+    s = str(raw).strip()
+    if not s or s.lower() in {"null", "none", "na", "n/a", "nan", "-"}:
+        return None, False
+    has_pct = "%" in s
+    s = s.replace("%", "").replace(" ", "")
+    # Handle European decimal comma when single comma and no dot (e.g. "85,4")
+    if "," in s and "." not in s and len(s.split(",")) == 2 and len(s.split(",")[1]) <= 2:
+        s = s.replace(",", ".")
+    else:
+        s = s.replace(",", "")
+    try:
+        f = float(s)
+        return (f, has_pct) if math.isfinite(f) else (None, False)
+    except ValueError:
+        return None, False
+
+
+def _parse_ts(ts: str) -> float:
+    s = ts.strip().replace(",", ".")
+    parts = s.split(":")
+    if len(parts) == 3:
+        return int(parts[0]) * 3600 + int(parts[1]) * 60 + float(parts[2])
+    if len(parts) == 2:
+        return int(parts[0]) * 60 + float(parts[1])
+    raise ValueError(f"Unparseable timestamp: {ts}")
+
+
+def _load_transcript_text(raw: str, hint: str = "") -> list[tuple[float, float, str]]:
+    stripped = raw.strip()
+    if not stripped:
+        return []
+    if stripped.startswith("{") or stripped.startswith("[") or hint.lower().endswith(".json"):
+        data = json.loads(stripped)
+        if isinstance(data, list):
+            segs = data
+        elif isinstance(data, dict):
+            if "segments" in data:
+                segs = data["segments"]
+            elif "words" in data:
+                segs = data["words"]
+            else:
+                raise ValueError("Transcript JSON object must contain a 'segments' or 'words' list.")
+            if not isinstance(segs, list):
+                raise ValueError("Transcript JSON 'segments'/'words' field must be a list.")
+        else:
+            raise ValueError("Transcript JSON must be a list of cues or an object with 'segments'/'words'.")
+        out: list[tuple[float, float, str]] = []
+        for idx, s in enumerate(segs):
+            if not isinstance(s, dict):
+                raise ValueError(f"Transcript JSON item at index {idx} must be an object, got {type(s).__name__}.")
+            st, en = _parse_num(s.get("start"))[0], _parse_num(s.get("end"))[0]
+            txt = str(s.get("text") or s.get("word") or "").strip()
+            if st is None or en is None or en < st:
+                raise ValueError(f"Transcript JSON item at index {idx} has invalid or missing 'start'/'end' timing.")
+            if txt:
+                out.append((st, en, txt))
+        return out
+
+    cues: list[list[Any]] = []
+    cur: list[Any] | None = None
+    skip_block = False
+    for line in raw.splitlines():
+        ls = line.strip()
+        if ls.startswith(("WEBVTT", "NOTE", "STYLE", "REGION")):
+            skip_block = ls.startswith(("NOTE", "STYLE"))
+            cur = None
+            continue
+        if not ls:
+            skip_block = False
+            cur = None
+            continue
+        if skip_block:
+            continue
+        m = re.match(r"(\d[\d:.,]+)\s*-->\s*(\d[\d:.,]+)", ls)
+        if m:
+            st, en = _parse_ts(m.group(1)), _parse_ts(m.group(2))
+            if en >= st:
+                cur = [st, en, []]
+                cues.append(cur)
+            else:
+                cur = None
+        elif cur is not None and not ls.isdigit():
+            cur[2].append(ls)
+    return [(a, b, " ".join(t)) for a, b, t in cues if t]
+
+
+_Y_TOKENS = {"retention", "audience", "watched", "remaining"}
+_Y_EXACT = {"y", "rate", "retention_pct", "retention_percent", "audience_retention", "still_watching", "watched_pct", "pct_watching"}
+_X_TOKENS = {"time", "sec", "secs", "second", "seconds", "pos", "position", "timestamp", "elapsed", "progress"}
+_X_EXACT = {"x", "t", "s", "pct", "percent", "%", "time_s", "video_pct", "video_percent", "percent_of_video", "pct_of_video", "position_pct", "position_percent", "elapsed_s"}
+_MISSING_SENTINELS = {"", "nan", "inf", "+inf", "-inf", "infinity", "+infinity", "-infinity", "null", "none", "na", "n/a", "-"}
+
+
+def _is_y_header(header: str) -> bool:
+    norm = re.sub(r"[^a-z0-9%]+", "_", header.strip().lower()).strip("_")
+    toks = set(re.findall(r"[a-z0-9]+|%", header.strip().lower()))
+    return norm in _Y_EXACT or bool(toks & _Y_TOKENS)
+
+
+def _is_x_header(header: str) -> bool:
+    if _is_y_header(header):
+        return False
+    norm = re.sub(r"[^a-z0-9%]+", "_", header.strip().lower()).strip("_")
+    toks = set(re.findall(r"[a-z0-9]+|%", header.strip().lower()))
+    return norm in _X_EXACT or bool(toks & _X_TOKENS)
+
+
+def _resolve_csv_columns(headers: list[str]) -> tuple[int, int]:
+    x_matches = [i for i, h in enumerate(headers) if _is_x_header(h)]
+    y_matches = [i for i, h in enumerate(headers) if _is_y_header(h)]
+    if len(x_matches) == 1 and len(y_matches) == 1 and x_matches[0] != y_matches[0]:
+        return x_matches[0], y_matches[0]
+    raise ValueError(
+        f"Ambiguous CSV headers {headers!r}: could not uniquely identify one time/position (x) column "
+        "and one retention (y) column."
+    )
+
+
+def _looks_like_data_cell(cell: str) -> bool:
+    s = cell.strip()
+    return _parse_num(s)[0] is not None or s.lower() in _MISSING_SENTINELS
+
+
+def parse_curve(raw_text: str) -> tuple[list[tuple[float, float]], dict[str, Any]]:
+    if not raw_text.strip():
+        raise ValueError("Retention input is empty.")
+    stripped = raw_text.strip()
+    meta: dict[str, Any] = {
+        "headers": [], "x_header": None, "y_header": None,
+        "pct_sign_seen_x": False, "pct_sign_seen_y": False, "rows_skipped": 0,
+    }
+    pts: list[tuple[float, float]] = []
+    ratio_y_names = {"ratio", "fraction", "retention_ratio", "retention_fraction"}
+
+    def _match_y_key(name: str) -> bool:
+        return _is_y_header(name) or name.strip().lower() in ratio_y_names
+
+    def _match_x_key(name: str) -> bool:
+        return (not _match_y_key(name)) and _is_x_header(name)
+
+    if stripped[0] in "[{":
+        data = json.loads(stripped)
+        if isinstance(data, dict) and "points" not in data:
+            list_keys = [k for k, v in data.items() if isinstance(k, str) and isinstance(v, list)]
+            x_keys = [k for k in list_keys if _match_x_key(k)]
+            y_keys = [k for k in list_keys if _match_y_key(k)]
+            if len(x_keys) != 1 or len(y_keys) != 1 or x_keys[0] == y_keys[0]:
+                raise ValueError(
+                    "JSON retention object must contain {'points': [...]} or uniquely one x-axis list "
+                    "and one retention list."
+                )
+            xk, yk = x_keys[0], y_keys[0]
+            x_vals, y_vals = data[xk], data[yk]
+            if len(x_vals) != len(y_vals):
+                raise ValueError(
+                    f"JSON retention arrays '{xk}' (len={len(x_vals)}) and '{yk}' (len={len(y_vals)}) must have equal length."
+                )
+            meta["x_header"], meta["y_header"], meta["headers"] = xk, yk, [xk, yk]
+            for raw_x, raw_y in zip(x_vals, y_vals):
+                (x, xp), (y, yp) = _parse_num(raw_x), _parse_num(raw_y)
+                if x is None or y is None:
+                    meta["rows_skipped"] += 1
+                    continue
+                meta["pct_sign_seen_x"] |= xp
+                meta["pct_sign_seen_y"] |= yp
+                pts.append((x, y))
+            return pts, meta
+
+        rows = data.get("points") if isinstance(data, dict) else data
+        if not isinstance(rows, list):
+            raise ValueError("JSON retention input must be a list or {'points': [...]}.")
+        seen_x_keys: set[str] = set()
+        seen_y_keys: set[str] = set()
+        saw_dict = False
+        saw_pair = False
+        for item in rows:
+            if isinstance(item, (list, tuple)):
+                if saw_dict:
+                    raise ValueError("Mixed object and array rows in JSON retention input.")
+                if len(item) != 2:
+                    raise ValueError(f"Headerless JSON point array must have exactly 2 elements [x, y], got {len(item)}.")
+                saw_pair = True
+                (x, xp), (y, yp) = _parse_num(item[0]), _parse_num(item[1])
+            elif isinstance(item, dict):
+                if saw_pair:
+                    raise ValueError("Mixed array and object rows in JSON retention input.")
+                saw_dict = True
+                xk_list = [k for k in item if isinstance(k, str) and _match_x_key(k)]
+                yk_list = [k for k in item if isinstance(k, str) and _match_y_key(k)]
+                if len(xk_list) > 1 or len(yk_list) > 1:
+                    raise ValueError(
+                        f"Conflicting JSON point keys (x={xk_list!r}, y={yk_list!r}); provide one x key and one retention key."
+                    )
+                if len(xk_list) != 1 or len(yk_list) != 1:
+                    meta["rows_skipped"] += 1
+                    continue
+                xk, yk = xk_list[0], yk_list[0]
+                seen_x_keys.add(xk)
+                seen_y_keys.add(yk)
+                (x, xp), (y, yp) = _parse_num(item[xk]), _parse_num(item[yk])
+            else:
+                meta["rows_skipped"] += 1
+                continue
+            if x is None or y is None:
+                meta["rows_skipped"] += 1
+                continue
+            meta["pct_sign_seen_x"] |= xp
+            meta["pct_sign_seen_y"] |= yp
+            pts.append((x, y))
+        if len(seen_x_keys) > 1:
+            raise ValueError(f"Conflicting x-axis keys across JSON points: {sorted(seen_x_keys)!r}.")
+        if len(seen_y_keys) > 1:
+            raise ValueError(f"Conflicting retention keys across JSON points: {sorted(seen_y_keys)!r}.")
+        if saw_dict and (not seen_x_keys or not seen_y_keys):
+            raise ValueError("Ambiguous JSON point keys: could not identify time/position (x) and retention (y) keys.")
+        if seen_x_keys:
+            meta["x_header"] = next(iter(seen_x_keys))
+        if seen_y_keys:
+            meta["y_header"] = next(iter(seen_y_keys))
+        if meta["x_header"] or meta["y_header"]:
+            meta["headers"] = [h for h in (meta["x_header"], meta["y_header"]) if h]
+        return pts, meta
+
+    delim = ";" if (stripped[:4096].count(";") > stripped[:4096].count(",")) else ","
+    raw_rows = [r for r in csv.reader(io.StringIO(raw_text), delimiter=delim) if r and any(c.strip() for c in r)]
+    if not raw_rows:
+        raise ValueError("Retention input is empty.")
+
+    first = raw_rows[0]
+    first_is_headerless_data = (
+        len(first) >= 2
+        and all(_looks_like_data_cell(c) for c in first)
+        and any(_parse_num(c)[0] is not None for c in first)
+    )
+    if first_is_headerless_data:
+        if len(first) != 2:
+            raise ValueError(
+                f"Headerless CSV has {len(first)} columns; provide headers identifying time and retention columns "
+                "(or exactly 2 columns [time, retention])."
+            )
+        x_idx, y_idx = 0, 1
+        data_rows = raw_rows
+    else:
+        headers = [c.strip() for c in first]
+        meta["headers"] = headers
+        x_matches = [i for i, h in enumerate(headers) if _match_x_key(h)]
+        y_matches = [i for i, h in enumerate(headers) if _match_y_key(h)]
+        if len(x_matches) == 1 and len(y_matches) == 1 and x_matches[0] != y_matches[0]:
+            x_idx, y_idx = x_matches[0], y_matches[0]
+        else:
+            x_idx, y_idx = _resolve_csv_columns(headers)
+        meta["x_header"] = headers[x_idx]
+        meta["y_header"] = headers[y_idx]
+        data_rows = raw_rows[1:]
+
+    req_len = max(x_idx, y_idx) + 1
+    for row in data_rows:
+        if len(row) < req_len:
+            meta["rows_skipped"] += 1
+            continue
+        x, xp = _parse_num(row[x_idx])
+        y, yp = _parse_num(row[y_idx])
+        if x is None or y is None:
+            meta["rows_skipped"] += 1
+            continue
+        meta["pct_sign_seen_x"] |= xp
+        meta["pct_sign_seen_y"] |= yp
+        pts.append((x, y))
+    return pts, meta
+
+
+def normalize_time(
+    points: list[tuple[float, float]],
+    time_unit: str,
+    duration_s: float | None,
+    meta: dict[str, Any],
+) -> tuple[list[tuple[float, float]], dict[str, Any]]:
+    if len(points) < 3:
+        raise ValueError(f"At least 3 valid retention data points required (got {len(points)}).")
+    if duration_s is not None and (not math.isfinite(duration_s) or duration_s <= 0):
+        raise ValueError("duration_s must be finite and > 0.")
+
+    xs = [p[0] for p in points]
+    if any(x < 0 or not math.isfinite(x) for x in xs):
+        raise ValueError("Timestamps/positions must be finite and >= 0.")
+
+    warnings: list[str] = []
+    skipped = int(meta.get("rows_skipped", 0))
+    if skipped > 0:
+        warnings.append(f"Skipped {skipped} invalid/non-numeric/NaN row(s) as missing (never coerced to 0).")
+    unsorted = any(xs[i] < xs[i - 1] for i in range(1, len(xs)))
+    if unsorted:
+        warnings.append("Input x-axis was unsorted; points were sorted ascending by position.")
+    ordered = sorted(points, key=lambda p: p[0])
+
+    deduped: list[tuple[float, float]] = []
+    dup_count = 0
+    for x, y in ordered:
+        if deduped and abs(x - deduped[-1][0]) < 1e-9:
+            deduped[-1] = (x, y)
+            dup_count += 1
+        else:
+            deduped.append((x, y))
+    if dup_count:
+        warnings.append(f"Resolved {dup_count} duplicate x-axis point(s) by keeping the last entry.")
+
+    x_hdr_raw = str(meta.get("x_header") or "").strip()
+    x_hdr = x_hdr_raw.lower()
+    x_toks = set(re.findall(r"[a-z0-9]+|%", x_hdr))
+    x_norm = re.sub(r"[^a-z0-9%]+", "_", x_hdr).strip("_")
+    hdr_pct = bool(x_hdr) and ("%" in x_toks or bool(x_toks & {"pct", "percent", "percentage"}) or x_norm.endswith(("_pct", "_percent")))
+    hdr_sec = bool(x_hdr) and (bool(x_toks & {"s", "sec", "secs", "second", "seconds"}) or x_norm.endswith(("_s", "_sec", "_secs", "_second", "_seconds")))
+    cell_pct = bool(meta.get("pct_sign_seen_x"))
+    header_unit = "percent" if (hdr_pct and not hdr_sec) else ("seconds" if (hdr_sec and not hdr_pct) else None)
+    max_x = max(p[0] for p in deduped)
+
+    # Precedence: CLI explicit > explicit CSV header / JSON key > warned inference (or exit 2 on ambiguity/conflict)
+    if time_unit != "auto":
+        resolved_unit = time_unit
+        if header_unit is not None and header_unit != resolved_unit:
+            warnings.append(f"CLI --time-unit {resolved_unit} overrides header/key '{x_hdr_raw}' ({header_unit}).")
+        if resolved_unit == "seconds" and cell_pct:
+            raise ValueError("Contradictory x-axis units: --time-unit seconds conflicts with '%' markers in x-axis values.")
+    else:
+        if hdr_pct and hdr_sec:
+            raise ValueError(f"Contradictory x-axis header/key '{x_hdr_raw}': specifies both seconds and percent.")
+        if header_unit == "seconds" and cell_pct:
+            raise ValueError(f"Contradictory x-axis units: header/key '{x_hdr_raw}' indicates seconds, but values contain '%'.")
+        if header_unit is not None:
+            resolved_unit = header_unit
+        elif cell_pct:
+            resolved_unit = "percent"
+        elif abs(max_x - 100.0) <= 2.0 and duration_s is None:
+            raise ValueError(
+                "Ambiguous x-axis unit: unitless x-axis ends near 100 without --duration. "
+                "Pass --time-unit seconds|percent explicitly."
+            )
+        elif max_x <= 100.5 and duration_s is not None and abs(max_x - 100.0) <= 2.0 and abs(duration_s - 100.0) > 2.0:
+            resolved_unit = "percent"
+            warnings.append("Inferred x-axis as percent (0-100%) from max~100 and explicit duration; pass --time-unit to override.")
+        else:
+            resolved_unit = "seconds"
+            warnings.append("Inferred x-axis as seconds (no explicit unit in header/key); pass --time-unit seconds|percent to lock.")
+
+    if resolved_unit == "percent":
+        if max_x > 100.5:
+            raise ValueError("Percent x-axis exceeds 100%.")
+        if duration_s is None:
+            raise ValueError("duration_s is required when x-axis is normalized percentage.")
+        converted = [(x / 100.0 * duration_s, y) for x, y in deduped]
+    else:
+        if duration_s is not None and max_x > duration_s * 1.05 + 1.0:
+            raise ValueError(f"Observed timestamp {max_x}s exceeds supplied duration_s ({duration_s}s).")
+        converted = deduped
+
+    spacings = [converted[i][0] - converted[i - 1][0] for i in range(1, len(converted)) if converted[i][0] > converted[i - 1][0]]
+    axis_info = {
+        "input_time_unit": resolved_unit,
+        "duration_s": duration_s if duration_s is not None else round(converted[-1][0], 3),
+        "observed_range_s": [round(converted[0][0], 3), round(converted[-1][0], 3)],
+        "points_count": len(converted),
+        "dropped_invalid_rows": skipped,
+        "median_step_s": round(statistics.median(spacings), 3) if spacings else None,
+        "max_step_s": round(max(spacings), 3) if spacings else None,
+        "warnings": warnings,
+    }
+    return converted, axis_info
+
+
+def normalize_rate(
+    points: list[tuple[float, float]],
+    rate_unit: str,
+    meta: dict[str, Any],
+) -> tuple[list[tuple[float, float]], dict[str, Any]]:
+    ys = [p[1] for p in points]
+    if any(y < 0 or not math.isfinite(y) for y in ys):
+        raise ValueError("Retention values must be finite and >= 0.")
+
+    max_y = max(ys)
+    warnings: list[str] = []
+    y_hdr_raw = str(meta.get("y_header") or "").strip()
+    y_hdr = y_hdr_raw.lower()
+    y_toks = set(re.findall(r"[a-z0-9]+|%", y_hdr))
+    y_norm = re.sub(r"[^a-z0-9%]+", "_", y_hdr).strip("_")
+    hdr_pct = bool(y_hdr) and ("%" in y_toks or bool(y_toks & {"pct", "percent", "percentage"}) or y_norm.endswith(("_pct", "_percent")))
+    hdr_ratio = bool(y_hdr) and (bool(y_toks & {"ratio", "fraction", "frac", "decimal", "proportion"}) or y_norm.endswith(("_ratio", "_fraction")))
+    cell_pct = bool(meta.get("pct_sign_seen_y"))
+    header_unit = "percent" if (hdr_pct and not hdr_ratio) else ("ratio" if (hdr_ratio and not hdr_pct) else None)
+
+    # Precedence: CLI explicit > explicit CSV header / JSON key > warned inference (or exit 2 on ambiguity/conflict)
+    if rate_unit != "auto":
+        resolved = rate_unit
+        if header_unit is not None and header_unit != resolved:
+            warnings.append(f"CLI --rate-unit {resolved} overrides header/key '{y_hdr_raw}' ({header_unit}).")
+        if resolved == "ratio" and cell_pct:
+            raise ValueError("Contradictory y-axis units: --rate-unit ratio conflicts with '%' markers in retention values.")
+        if resolved == "ratio" and max_y > 10.0:
+            raise ValueError(f"Contradictory y-axis values: max retention {max_y} exceeds plausible ratio scale (<= 10.0).")
+    else:
+        if hdr_pct and hdr_ratio:
+            raise ValueError(f"Contradictory retention header/key '{y_hdr_raw}': specifies both percent and ratio.")
+        if header_unit == "ratio" and cell_pct:
+            raise ValueError(f"Contradictory y-axis units: header/key '{y_hdr_raw}' indicates ratio, but values contain '%'.")
+        if header_unit == "percent":
+            resolved = "percent"
+            if 0 < max_y <= 1.5 and not cell_pct:
+                warnings.append(
+                    f"Header/key '{y_hdr_raw}' specifies percent; kept small values (max={round(max_y, 4)}%) "
+                    "as percent without x100 scaling (pass --rate-unit ratio if values are 0..1 ratios)."
+                )
+        elif header_unit == "ratio":
+            if max_y > 10.0:
+                raise ValueError(
+                    f"Contradictory y-axis values: header/key '{y_hdr_raw}' indicates ratio, but max value {max_y} suggests percent."
+                )
+            resolved = "ratio"
+        elif cell_pct:
+            resolved = "percent"
+        elif max_y > 2.5:
+            resolved = "percent"
+            warnings.append("Inferred retention y-axis as percent from numeric scale; pass --rate-unit percent|ratio to lock.")
+        elif max_y == 0.0:
+            resolved = "percent"
+            warnings.append("Inferred retention y-axis as percent (all values are 0); pass --rate-unit percent|ratio to lock.")
+        elif max_y <= 1.05 and 0.2 < ys[0] <= 1.05:
+            resolved = "ratio"
+            warnings.append("Inferred 0..1 ratio values and scaled to percentage (x100); pass --rate-unit percent|ratio to lock.")
+        else:
+            raise ValueError(
+                "Ambiguous retention y-axis unit (values <= 2.5 without explicit header/key or '%' sign). "
+                "Pass --rate-unit percent or --rate-unit ratio explicitly."
+            )
+
+    converted = [(x, y * 100.0) for x, y in points] if resolved == "ratio" else points
+    if any(y > 100.0 for _, y in converted):
+        warnings.append(
+            "Retention exceeds 100% at one or more timestamps (valid YouTube rewatch/loop behavior — NOT clamped)."
+        )
+    return converted, {"input_rate_unit": resolved, "warnings": warnings}
+
+
+def _value_at(points: list[tuple[float, float]], target_s: float) -> tuple[float | None, str]:
+    if target_s < points[0][0] or target_s > points[-1][0]:
+        return None, "out_of_observed_range"
+    for x, y in points:
+        if abs(x - target_s) < 1e-9:
+            return y, "exact_observed_point"
+    for i in range(1, len(points)):
+        x0, y0 = points[i - 1]
+        x1, y1 = points[i]
+        if x0 <= target_s <= x1 and x1 > x0:
+            frac = (target_s - x0) / (x1 - x0)
+            return y0 + frac * (y1 - y0), "linear_between_observed_points"
+    return None, "unavailable"
+
+
+def detect_early_change(
+    points: list[tuple[float, float]],
+    video_format: str,
+    duration_s: float,
+    custom_window_s: float | None = None,
+) -> dict[str, Any]:
+    if custom_window_s is not None:
+        windows = [custom_window_s]
+    elif video_format == "SHORT":
+        windows = [3.0, round(duration_s * 0.15, 2)]
+    else:
+        windows = [15.0, 30.0]
+
+    start_x, start_y = points[0]
+    results: list[dict[str, Any]] = []
+    seen_w: set[float] = set()
+    for w in windows:
+        if w <= start_x or w in seen_w:
+            continue
+        seen_w.add(w)
+        val, method = _value_at(points, w)
+        if val is None:
+            results.append({
+                "window_end_s": round(w, 2),
+                "status": "NOT_OBSERVED_IN_RANGE",
+                "method": method,
+            })
+            continue
+        delta_pp = val - start_y
+        rel_pct = (delta_pp / start_y * 100.0) if start_y > 0 else None
+        results.append({
+            "window_start_s": round(start_x, 2),
+            "window_end_s": round(w, 2),
+            "start_retention_pct": round(start_y, 2),
+            "end_retention_pct": round(val, 2),
+            "delta_pp": round(delta_pp, 2),
+            "relative_change_pct": round(rel_pct, 2) if rel_pct is not None else None,
+            "slope_pp_per_s": round(delta_pp / (w - start_x), 3),
+            "method": method,
+        })
+    return {"format": video_format, "windows": results}
+
+
+def detect_cliffs(
+    points: list[tuple[float, float]],
+    min_drop_pp: float = 3.0,
+    slope_multiplier: float = 2.5,
+) -> dict[str, Any]:
+    segments: list[dict[str, Any]] = []
+    for i in range(1, len(points)):
+        x0, y0 = points[i - 1]
+        x1, y1 = points[i]
+        dt = x1 - x0
+        if dt <= 0:
+            continue
+        delta_pp = y1 - y0
+        slope = delta_pp / dt
+        segments.append({
+            "start_s": round(x0, 3),
+            "end_s": round(x1, 3),
+            "dt_s": round(dt, 3),
+            "start_pct": round(y0, 2),
+            "end_pct": round(y1, 2),
+            "delta_pp": round(delta_pp, 2),
+            "slope_pp_per_s": round(slope, 3),
+        })
+
+    neg_slopes = [abs(s["slope_pp_per_s"]) for s in segments if s["delta_pp"] < 0]
+    bg_drop_slope = statistics.median(neg_slopes) if neg_slopes else 0.0
+    total_end = points[-1][0]
+
+    cliffs: list[dict[str, Any]] = []
+    spikes: list[dict[str, Any]] = []
+    for seg in segments:
+        is_end_tail = total_end > 0 and seg["start_s"] >= total_end * 0.90
+        if seg["delta_pp"] <= -min_drop_pp:
+            abs_slope = abs(seg["slope_pp_per_s"])
+            ratio = (abs_slope / bg_drop_slope) if bg_drop_slope > 1e-6 else float("inf")
+            if bg_drop_slope == 0.0 or ratio >= slope_multiplier:
+                cliffs.append({
+                    **seg,
+                    "slope_vs_background_median": round(ratio, 2) if math.isfinite(ratio) else None,
+                    "is_end_tail_likely_natural_exit": is_end_tail,
+                    "is_post_rewatch_spike_return": seg["start_pct"] > 100.0,
+                })
+        elif seg["delta_pp"] >= min_drop_pp:
+            spikes.append({**seg, "note": "Positive retention spike (possible rewatch or skip-to moment)."})
+
+    cliffs.sort(key=lambda c: (c["delta_pp"], -abs(c["slope_pp_per_s"]), c["start_s"]))
+    spikes.sort(key=lambda s: (-s["delta_pp"], s["start_s"]))
+
+    # Steady middle slide excluding first 10% and last 10%
+    mid_segs = [s for s in segments if total_end > 0 and (0.10 * total_end) <= s["start_s"] <= (0.90 * total_end)]
+    middle_slide = round(statistics.mean([s["slope_pp_per_s"] for s in mid_segs]), 4) if mid_segs else None
+
+    return {
+        "background_median_drop_slope_pp_per_s": round(bg_drop_slope, 4),
+        "middle_mean_slope_pp_per_s": middle_slide,
+        "cliffs": cliffs[:10],
+        "rewatch_or_skip_spikes": spikes[:5],
+    }
+
+
+def align_transcript(
+    cliffs: list[dict[str, Any]],
+    cues: list[tuple[float, float, str]],
+    pad_s: float = 2.0,
+) -> list[dict[str, Any]]:
+    aligned: list[dict[str, Any]] = []
+    for c in cliffs:
+        lo, hi = c["start_s"] - pad_s, c["end_s"] + pad_s
+        matched = [txt for st, en, txt in cues if st <= hi and en >= lo]
+        aligned.append({
+            "cliff_interval_s": [c["start_s"], c["end_s"]],
+            "delta_pp": c["delta_pp"],
+            "transcript_excerpt": " ".join(matched)[:240] if matched else None,
+            "attribution_note": "possible_contributor_not_proven_cause" if matched else "no_transcript_cue_in_window",
+        })
+    return aligned
+
+
+def summarize(
+    points: list[tuple[float, float]],
+    axis_info: dict[str, Any],
+    rate_info: dict[str, Any],
+    early: dict[str, Any],
+    cliff_info: dict[str, Any],
+    transcript_alignment: list[dict[str, Any]] | None,
+) -> dict[str, Any]:
+    warnings = list(axis_info["warnings"]) + list(rate_info["warnings"])
+    return {
+        "tool": "retention.py",
+        "axis": {k: v for k, v in axis_info.items() if k != "warnings"},
+        "rate_unit_input": rate_info["input_rate_unit"],
+        "overview": {
+            "start_retention_pct": round(points[0][1], 2),
+            "end_retention_pct": round(points[-1][1], 2),
+            "max_retention_pct": round(max(y for _, y in points), 2),
+            "min_retention_pct": round(min(y for _, y in points), 2),
+            "has_rewatch_above_100pct": any(y > 100.0 for _, y in points),
+            "dropped_invalid_rows": axis_info.get("dropped_invalid_rows", 0),
+        },
+        "early_window_change": early,
+        "cliffs_and_slide": cliff_info,
+        "transcript_alignment": transcript_alignment,
+        "warnings": warnings,
+        "limitations": LIMITATION_NOTE,
+    }
+
+
+def _read_bounded(path_or_dash: str, max_bytes: int) -> str:
+    if path_or_dash == "-":
+        raw = sys.stdin.buffer.read(max_bytes + 1)
+    else:
+        p = Path(path_or_dash)
+        if not p.is_file():
+            raise FileNotFoundError(f"Not found: {path_or_dash}")
+        if p.stat().st_size > max_bytes:
+            raise ValueError(f"Exceeds {max_bytes} bytes.")
+        raw = p.read_bytes()
+    if len(raw) > max_bytes:
+        raise ValueError(f"Exceeds {max_bytes} bytes.")
+    return raw.decode("utf-8-sig", errors="replace")
+
+
+def main(argv: list[str] | None = None) -> int:
+    p = argparse.ArgumentParser(description="Standalone YouTube audience-retention curve analyzer (JSON stdout).")
+    p.add_argument("input", nargs="?", default="-")
+    p.add_argument("--format", choices=["SHORT", "LONG"], default="LONG")
+    p.add_argument("--duration", type=float, default=None)
+    p.add_argument("--time-unit", choices=["auto", "seconds", "percent"], default="auto")
+    p.add_argument("--rate-unit", choices=["auto", "percent", "ratio"], default="auto")
+    p.add_argument("--early-sec", type=float, default=None)
+    p.add_argument("--min-drop-pp", type=float, default=3.0)
+    p.add_argument("--slope-mult", type=float, default=2.5)
+    p.add_argument("--transcript", default=None)
+    p.add_argument("--json", action="store_true")
+    p.add_argument("--max-bytes", type=int, default=MAX_INPUT_BYTES)
+    args = p.parse_args(argv)
+    if args.max_bytes <= 0 or args.min_drop_pp <= 0 or args.slope_mult <= 0:
+        print("Error: thresholds must be > 0.", file=sys.stderr)
+        return 2
+    try:
+        if args.input == "-" and sys.stdin.isatty():
+            print("Error: Provide retention CSV/JSON or stdin.", file=sys.stderr)
+            return 2
+        pts, meta = parse_curve(_read_bounded(args.input, args.max_bytes))
+        t_pts, axis_info = normalize_time(pts, args.time_unit, args.duration, meta)
+        norm_pts, rate_info = normalize_rate(t_pts, args.rate_unit, meta)
+        early = detect_early_change(norm_pts, args.format, axis_info["duration_s"], args.early_sec)
+        cliffs = detect_cliffs(norm_pts, args.min_drop_pp, args.slope_mult)
+        aligned = align_transcript(cliffs["cliffs"], _load_transcript_text(_read_bounded(args.transcript, args.max_bytes), args.transcript)) if args.transcript else None
+        payload = summarize(norm_pts, axis_info, rate_info, early, cliffs, aligned)
+    except (ValueError, FileNotFoundError, OSError, csv.Error, json.JSONDecodeError) as exc:
+        print(f"Invalid input: {exc}", file=sys.stderr)
+        return 2
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+    print(json.dumps(payload, indent=2, ensure_ascii=False))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -1,0 +1,110 @@
+{
+  "schema_version": "1.0.0",
+  "pack_id": "demo-03-analytics-retention-audit",
+  "created_at_utc": "2026-11-27T09:40:00Z",
+  "mode": "ANALYTICS_DIAGNOSIS",
+  "format": "SHORT",
+  "language": "en-US",
+  "audience_market": "US",
+  "inputs": [
+    {
+      "id": "IN-01",
+      "type": "retention_csv",
+      "source": "synthetic_retention.csv",
+      "scope": "45s synthetic Short retention curve (10 observed points)",
+      "observed_at": "2026-11-27"
+    },
+    {
+      "id": "IN-02",
+      "type": "transcript_srt",
+      "source": "synthetic_transcript.srt",
+      "scope": "timestamped caption alignment",
+      "observed_at": "2026-11-27"
+    }
+  ],
+  "capabilities": {
+    "used": ["TEXT_ONLY", "FILE_READ", "FILE_WRITE", "CODE"],
+    "unavailable": ["VISION", "AUDIO/VIDEO", "WEB"]
+  },
+  "assumptions": [
+    "Dataset is explicitly labeled synthetic (FICTIONAL_OR_DEMO) for workflow demonstration."
+  ],
+  "limitations": [
+    "Transcript alignment identifies possible contributors, not proven causation.",
+    "Stayed-to-watch and Engaged Views were not supplied in this export.",
+    "Single video (n=1); confirm pattern across a comparable multi-video cohort."
+  ],
+  "evidence": [
+    {
+      "id": "E01",
+      "url_or_user_input": "synthetic_retention.csv (scripts/retention.py)",
+      "claim": "Retention drops -18.0 pp between 12.0s and 16.0s (79.0% to 61.0%, 2.82x background drop slope) and spikes +49.5 pp to 108.5% at 28.0s.",
+      "source_date": "2026-11-27",
+      "retrieved_at": "2026-11-27",
+      "status": "FICTIONAL_OR_DEMO"
+    },
+    {
+      "id": "E02",
+      "url_or_user_input": "synthetic_transcript.srt",
+      "claim": "Between 12.1s and 16.5s the caption contains a mid-video channel follow and link-in-bio CTA before the physics demonstration.",
+      "source_date": "2026-11-27",
+      "retrieved_at": "2026-11-27",
+      "status": "FICTIONAL_OR_DEMO"
+    }
+  ],
+  "recommendation": {
+    "action": "Remove mid-video follow/bio CTA interruptions before the visual payoff on the next 3 comparable Shorts while preserving the slow-motion mechanism cutaway.",
+    "rationale": "The steepest non-spike drop (-18.0 pp at 12-16s) aligns with the mid-video CTA cue, whereas the cutaway beat at 22-28s coincides with a valid 108.5% rewatch spike.",
+    "evidence_ids": ["E01", "E02"],
+    "confidence": "MEDIUM"
+  },
+  "title": null,
+  "hook": null,
+  "first_frame": null,
+  "script": null,
+  "storyboard": [],
+  "thumbnail": null,
+  "upload": null,
+  "analytics": {
+    "metrics": {
+      "duration_s": 45.0,
+      "early_0_to_3s_delta_pp": -16.0,
+      "mid_cliff_12_to_16s_delta_pp": -18.0,
+      "rewatch_peak_pct": 108.5,
+      "end_retention_pct": 51.0,
+      "stayed_to_watch_pct": null,
+      "engaged_views": null
+    },
+    "cohort": {
+      "format": "SHORT",
+      "sample_size": 1,
+      "comparability_note": "Single synthetic video; compare against >=5 comparable Shorts in real channel usage."
+    },
+    "findings": [
+      "12.0s-16.0s shows a -18.0 pp cliff (2.82x background slope) aligned with a mid-video CTA cue (possible contributor).",
+      "22.0s-28.0s rises +49.5 pp to 108.5% (valid rewatch spike; preserved without clamping).",
+      "28.0s-35.0s drop from 108.5% to 64.0% is flagged as a post-rewatch spike return rather than an early exit cliff."
+    ]
+  },
+  "content_plan": [],
+  "experiment": {
+    "hypothesis": "Eliminating mid-video CTA interruptions before the visual payoff reduces 10-20s retention loss by >=8 pp while keeping the cutaway rewatch spike.",
+    "metric": "10s-20s retention delta (pp), APV, stayed_to_watch_pct",
+    "window": "First 7 days post-publish across n>=3 comparable Shorts",
+    "controls": "Same science demo pillar, ~45s duration, immediate visual hook, cutaway beat",
+    "decision": "PENDING"
+  },
+  "quality": {
+    "checks": ["retention.py_executed", "non_causal_language", "rewatch_gt_100_preserved", "null_for_missing_metrics"],
+    "status": "READY_FOR_CREATOR_REVIEW",
+    "unresolved": []
+  },
+  "files": [
+    "README.md",
+    "synthetic_retention.csv",
+    "synthetic_transcript.srt",
+    "ANALYTICS_REPORT.md",
+    "NEXT_EXPERIMENT.md",
+    "creator-pack.json"
+  ]
+}

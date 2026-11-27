@@ -1,0 +1,145 @@
+name: Release — Candidate & Tag Distribution
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version without leading v (e.g. 1.0.0-rc.4 or 1.0.0)"
+        required: true
+        default: "1.0.0-rc.4"
+      target_sha:
+        description: "Optional 40-hex commit SHA to pin release build (defaults to checked-out HEAD)"
+        required: false
+        default: ""
+      draft:
+        description: "Create as Draft GitHub Release (recommended for owner review)"
+        required: true
+        type: boolean
+        default: true
+      stable_gates_verified:
+        description: "Confirm external multi-client & Agensi gates passed (required ONLY for non-RC stable versions)"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  verify-and-build:
+    name: Verify & Build Reproducible Archives
+    runs-on: ubuntu-latest
+    outputs:
+      release_sha: ${{ steps.pin_and_validate.outputs.release_sha }}
+      validated_version: ${{ steps.pin_and_validate.outputs.validated_version }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.target_sha || github.ref }}
+
+      - name: Validate version, pinned commit SHA, and stable gate policy
+        id: pin_and_validate
+        env:
+          VERSION: ${{ inputs.version }}
+          TARGET_SHA: ${{ inputs.target_sha }}
+          STABLE_GATES_VERIFIED: ${{ inputs.stable_gates_verified }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$ ]]; then
+            echo "::error::Invalid version '$VERSION'. Expected semver without leading v (e.g. 1.0.0-rc.2 or 1.0.0)."
+            exit 1
+          fi
+          HEAD_SHA="$(git rev-parse HEAD)"
+          if [[ -n "$TARGET_SHA" ]]; then
+            if [[ ! "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+              echo "::error::Invalid target_sha '$TARGET_SHA'. Expected 40 lowercase hex chars."
+              exit 1
+            fi
+            if [[ "$HEAD_SHA" != "$TARGET_SHA" ]]; then
+              echo "::error::Checked-out HEAD ($HEAD_SHA) does not match target_sha ($TARGET_SHA)."
+              exit 1
+            fi
+          fi
+          if [[ "$VERSION" != *"-rc."* ]]; then
+            if [[ "$STABLE_GATES_VERIFIED" != "true" ]]; then
+              echo "::error::Refusing stable release '$VERSION' without stable_gates_verified=true."
+              exit 1
+            fi
+            if grep -qE "DOC_ONLY / NOT_RUN|LIVE_UPLOAD_PENDING" docs/COMPATIBILITY.md; then
+              echo "::error::docs/COMPATIBILITY.md still lists unverified external gates (DOC_ONLY / NOT_RUN). Keep -rc.N version until external certification completes."
+              exit 1
+            fi
+          fi
+          echo "release_sha=$HEAD_SHA" >> "$GITHUB_OUTPUT"
+          echo "validated_version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run full QA gate suite
+        env:
+          VERSION: ${{ steps.pin_and_validate.outputs.validated_version }}
+        run: python tools/run_qa.py --version "$VERSION"
+
+      - name: Run eval and demo pack verification
+        run: python tools/run_evals.py
+
+      - name: Upload built release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: youtube-creator-skill-v${{ steps.pin_and_validate.outputs.validated_version }}
+          path: |
+            dist/youtube-creator-skill-agensi-v${{ steps.pin_and_validate.outputs.validated_version }}.zip
+            dist/youtube-creator-skill-universal-v${{ steps.pin_and_validate.outputs.validated_version }}.zip
+            dist/UNIVERSAL_PROMPT.md
+            dist/SHA256SUMS.txt
+            dist/release-manifest.json
+            dist/RELEASE_NOTES.md
+
+  publish-github-release:
+    name: Create GitHub Release (Owner Controlled)
+    needs: verify-and-build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download verified artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: youtube-creator-skill-v${{ needs.verify-and-build.outputs.validated_version }}
+          path: dist
+
+      - name: Verify SHA256SUMS before publishing
+        working-directory: dist
+        run: sha256sum -c SHA256SUMS.txt
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          VERSION: ${{ needs.verify-and-build.outputs.validated_version }}
+          RELEASE_SHA: ${{ needs.verify-and-build.outputs.release_sha }}
+          DRAFT: ${{ inputs.draft }}
+        run: |
+          set -euo pipefail
+          FLAGS=()
+          if [[ "$VERSION" == *"-rc."* ]]; then
+            FLAGS+=(--prerelease)
+          fi
+          if [[ "$DRAFT" == "true" ]]; then
+            FLAGS+=(--draft)
+          fi
+          gh release create "v$VERSION" \
+            --repo "$REPO" \
+            --target "$RELEASE_SHA" \
+            --title "YouTube Creator Intelligence v$VERSION" \
+            --notes-file dist/RELEASE_NOTES.md \
+            "${FLAGS[@]}" \
+            "dist/youtube-creator-skill-agensi-v$VERSION.zip" \
+            "dist/youtube-creator-skill-universal-v$VERSION.zip" \
+            "dist/UNIVERSAL_PROMPT.md" \
+            "dist/SHA256SUMS.txt" \
+            "dist/release-manifest.json"
